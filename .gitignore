@@ -1,0 +1,60 @@
+# --- Zephyr / NCS build outputs ---
+build/
+build_*/
+**/build/
+**/build_*/
+zephyr/
+!docs/**/zephyr/
+
+# Generated / IDE build metadata
+*.ninja
+.ninja_log
+.ninja_deps
+compile_commands.json
+.west/
+*.hex
+*.bin
+*.elf
+*.map
+*.stat
+*.lnk
+merged.hex
+zephyr.signed.bin
+dfu_application.zip
+*.pyc
+__pycache__/
+
+# --- Editor / IDE ---
+.vscode/
+.idea/
+*.code-workspace
+.clang/
+
+# --- Python ---
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+
+# --- OS / junk ---
+.DS_Store
+Thumbs.db
+desktop.ini
+*~
+*.swp
+*.tmp
+
+# --- Logs & local captures (keep folder via .gitkeep) ---
+data/**/*.txt
+data/**/*.csv
+data/**/*.log
+!data/**/.gitkeep
+tools/logger/logs/
+tools/**/.venv/
+
+# --- Secrets / local env ---
+.env
+.env.*
+*.pem
+credentials.json
