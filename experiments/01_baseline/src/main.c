@@ -4,9 +4,10 @@
  *
  * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  *
- * NR+ Experimental Firmware v1.0 — DECT NR+ PHY baseline experiment.
+ * NR+ Experimental Firmware — DECT NR+ PHY baseline (+ optional exp shell).
  */
 #include <inttypes.h>
+#include <limits.h>
 #include <string.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
@@ -16,6 +17,7 @@
 #include <zephyr/drivers/hwinfo.h>
 
 #include "experiment_packet.h"
+#include "exp_runtime.h"
 
 LOG_MODULE_REGISTER(app);
 
@@ -26,12 +28,10 @@ BUILD_ASSERT(sizeof(struct experiment_packet) == 15,
 	     "experiment_packet size changed — update docs");
 
 #define DATA_LEN_MAX 32
+#define RADIO_STACK_SIZE 4096
 
-static bool exit;
-static uint16_t device_id;
+static bool phy_fatal;
 static uint64_t modem_time;
-static uint32_t rx_packet_count;
-static uint32_t tx_packet_count;
 static uint16_t last_sender_id;
 
 #define SEQ_TRACK_MAX 4
@@ -45,6 +45,7 @@ static struct seq_track seq_tracks[SEQ_TRACK_MAX];
 static void note_rx_sequence(uint16_t from_id, uint32_t sequence)
 {
 	struct seq_track *slot = NULL;
+	struct exp_runtime *rt = exp_runtime_get();
 
 	for (int i = 0; i < SEQ_TRACK_MAX; i++) {
 		if (seq_tracks[i].used && seq_tracks[i].id == from_id) {
@@ -62,6 +63,9 @@ static void note_rx_sequence(uint16_t from_id, uint32_t sequence)
 
 	if (slot->used && sequence != slot->seq + 1U && sequence != 0U) {
 		LOG_WRN("RX gap: from=%u prev_seq=%u seq=%u", from_id, slot->seq, sequence);
+		exp_runtime_lock();
+		rt->rx_gaps++;
+		exp_runtime_unlock();
 	}
 
 	slot->used = true;
@@ -69,7 +73,6 @@ static void note_rx_sequence(uint16_t from_id, uint32_t sequence)
 	slot->seq = sequence;
 }
 
-/* Header type 1, due to endianness the order is different than in the specification. */
 struct phy_ctrl_field_common {
 	uint32_t packet_length : 4;
 	uint32_t packet_length_type : 1;
@@ -90,10 +93,9 @@ static void on_init(const struct nrf_modem_dect_phy_init_event *evt)
 {
 	if (evt->err) {
 		LOG_ERR("Init failed, err %d", evt->err);
-		exit = true;
+		phy_fatal = true;
 		return;
 	}
-
 	k_sem_give(&operation_sem);
 }
 
@@ -103,7 +105,6 @@ static void on_deinit(const struct nrf_modem_dect_phy_deinit_event *evt)
 		LOG_ERR("Deinit failed, err %d", evt->err);
 		return;
 	}
-
 	k_sem_give(&deinit_sem);
 }
 
@@ -111,10 +112,9 @@ static void on_activate(const struct nrf_modem_dect_phy_activate_event *evt)
 {
 	if (evt->err) {
 		LOG_ERR("Activate failed, err %d", evt->err);
-		exit = true;
+		phy_fatal = true;
 		return;
 	}
-
 	k_sem_give(&operation_sem);
 }
 
@@ -124,7 +124,6 @@ static void on_deactivate(const struct nrf_modem_dect_phy_deactivate_event *evt)
 		LOG_ERR("Deactivate failed, err %d", evt->err);
 		return;
 	}
-
 	k_sem_give(&deinit_sem);
 }
 
@@ -134,7 +133,6 @@ static void on_configure(const struct nrf_modem_dect_phy_configure_event *evt)
 		LOG_ERR("Configure failed, err %d", evt->err);
 		return;
 	}
-
 	k_sem_give(&operation_sem);
 }
 
@@ -149,7 +147,6 @@ static void on_radio_config(const struct nrf_modem_dect_phy_radio_config_event *
 		LOG_ERR("Radio config failed, err %d", evt->err);
 		return;
 	}
-
 	k_sem_give(&operation_sem);
 }
 
@@ -203,13 +200,15 @@ static void on_pdc(const struct nrf_modem_dect_phy_pdc_event *evt)
 	uint64_t rx_time_ms = k_uptime_get();
 	int rssi_i = evt->rssi_2 / 2;
 	int rssi_f = (evt->rssi_2 & 1) * 5;
-
-	rx_packet_count++;
+	struct exp_runtime *rt = exp_runtime_get();
 
 	if (evt->len < sizeof(struct experiment_packet)) {
 		LOG_WRN("RX: node=%u seq= short size=%u from=%u rssi=%d.%d time=%llu cs=fail",
-			device_id, evt->len, last_sender_id, rssi_i, rssi_f,
+			exp_device_id(), evt->len, last_sender_id, rssi_i, rssi_f,
 			(unsigned long long)rx_time_ms);
+		exp_runtime_lock();
+		rt->rx_fail++;
+		exp_runtime_unlock();
 		return;
 	}
 
@@ -222,16 +221,29 @@ static void on_pdc(const struct nrf_modem_dect_phy_pdc_event *evt)
 	}
 
 	LOG_INF("RX: node=%u seq=%u from=%u rssi=%d.%d time=%llu tx_time=%u size=%u type=%u cs=%s",
-		device_id, pkt->sequence, from_id, rssi_i, rssi_f,
+		exp_device_id(), pkt->sequence, from_id, rssi_i, rssi_f,
 		(unsigned long long)rx_time_ms, pkt->tx_time_ms, evt->len, pkt->message_type,
 		cs_ok ? "ok" : "fail");
 
+	exp_runtime_lock();
+	if (cs_ok) {
+		rt->rx_ok++;
+		rt->last_from = from_id;
+		if (evt->rssi_2 < rt->rssi_min_x2) {
+			rt->rssi_min_x2 = evt->rssi_2;
+		}
+		if (evt->rssi_2 > rt->rssi_max_x2) {
+			rt->rssi_max_x2 = evt->rssi_2;
+		}
+		rt->rssi_sum_x2 += evt->rssi_2;
+		rt->rssi_n++;
+	} else {
+		rt->rx_fail++;
+	}
+	exp_runtime_unlock();
+
 	if (cs_ok) {
 		note_rx_sequence(from_id, pkt->sequence);
-	}
-
-	if (!IS_ENABLED(CONFIG_EXPERIMENT_LOG_COMPACT)) {
-		LOG_INF("Stats TX=%u RX=%u", tx_packet_count, rx_packet_count);
 	}
 }
 
@@ -332,21 +344,18 @@ static struct nrf_modem_dect_phy_config_params dect_phy_config_params = {
 	.harq_rx_expiry_time_us = 5000000,
 };
 
-static int transmit(uint32_t handle, void *data, size_t data_len)
+static int transmit(uint32_t handle, void *data, size_t data_len, uint8_t tx_power, uint8_t mcs)
 {
-	int err;
-
-	/* Extra subslots so padded experiment_packet fits comfortably. */
 	struct phy_ctrl_field_common header = {
 		.header_format = 0x0,
 		.packet_length_type = 0x0,
 		.packet_length = 0x03,
 		.short_network_id = (CONFIG_NETWORK_ID & 0xff),
-		.transmitter_id_hi = (device_id >> 8),
-		.transmitter_id_lo = (device_id & 0xff),
-		.transmit_power = CONFIG_TX_POWER,
+		.transmitter_id_hi = (exp_device_id() >> 8),
+		.transmitter_id_lo = (exp_device_id() & 0xff),
+		.transmit_power = tx_power,
 		.reserved = 0,
-		.df_mcs = CONFIG_MCS,
+		.df_mcs = mcs,
 	};
 
 	struct nrf_modem_dect_phy_tx_params tx_op_params = {
@@ -362,18 +371,11 @@ static int transmit(uint32_t handle, void *data, size_t data_len)
 		.data_size = data_len,
 	};
 
-	err = nrf_modem_dect_phy_tx(&tx_op_params);
-	if (err != 0) {
-		return err;
-	}
-
-	return 0;
+	return nrf_modem_dect_phy_tx(&tx_op_params);
 }
 
 static int receive(uint32_t handle)
 {
-	int err;
-
 	struct nrf_modem_dect_phy_rx_params rx_op_params = {
 		.start_time = 0,
 		.handle = handle,
@@ -390,107 +392,166 @@ static int receive(uint32_t handle)
 		.filter.receiver_identity = CONFIG_EXPERIMENT_DEST_RECEIVER_ID,
 	};
 
-	err = nrf_modem_dect_phy_rx(&rx_op_params);
-	if (err != 0) {
-		return err;
-	}
-
-	return 0;
+	return nrf_modem_dect_phy_rx(&rx_op_params);
 }
 
 static void resolve_device_id(void)
 {
-	/* CONFIG_EXPERIMENT_DEVICE_ID exists only when override is enabled in Kconfig. */
+	uint16_t id;
+
 #if IS_ENABLED(CONFIG_EXPERIMENT_DEVICE_ID_OVERRIDE)
-	device_id = (uint16_t)CONFIG_EXPERIMENT_DEVICE_ID;
+	id = (uint16_t)CONFIG_EXPERIMENT_DEVICE_ID;
 #else
-	hwinfo_get_device_id((void *)&device_id, sizeof(device_id));
+	hwinfo_get_device_id((void *)&id, sizeof(id));
 #endif
+	exp_set_device_id(id);
 }
 
-static const char *test_mode_str(void)
-{
-	if (IS_ENABLED(CONFIG_EXPERIMENT_TEST_MODE_TX_ONLY)) {
-		return "tx_only";
-	}
-	if (IS_ENABLED(CONFIG_EXPERIMENT_TEST_MODE_RX_ONLY)) {
-		return "rx_only";
-	}
-	return "tx_rx";
-}
-
-static int send_one(uint32_t tx_handle, uint32_t sequence, uint8_t *tx_buf)
+static int send_one(uint32_t tx_handle, uint8_t *tx_buf)
 {
 	int err;
-	size_t tx_len = CONFIG_EXPERIMENT_PACKET_SIZE;
+	struct exp_runtime *rt = exp_runtime_get();
+	uint32_t sequence;
+	uint16_t tx_len;
+	uint8_t tx_power;
+	uint8_t mcs;
+	uint8_t msg_type;
 	struct experiment_packet *pkt = (struct experiment_packet *)tx_buf;
 
-	memset(tx_buf, 0, DATA_LEN_MAX);
+	exp_runtime_lock();
+	sequence = rt->sequence;
+	tx_len = rt->packet_size;
+	tx_power = rt->tx_power;
+	mcs = rt->mcs;
+	msg_type = rt->message_type;
+	exp_runtime_unlock();
 
-	pkt->device_id = device_id;
-	pkt->message_type = (uint8_t)CONFIG_EXPERIMENT_MESSAGE_TYPE;
+	if (tx_len < sizeof(*pkt) || tx_len > DATA_LEN_MAX) {
+		LOG_ERR("invalid packet size %u", tx_len);
+		return -EINVAL;
+	}
+
+	memset(tx_buf, 0, DATA_LEN_MAX);
+	pkt->device_id = exp_device_id();
+	pkt->message_type = msg_type;
 	pkt->flags = 0;
 	pkt->sequence = sequence;
 	pkt->tx_time_ms = (uint32_t)k_uptime_get();
 	pkt->payload_len = (uint16_t)(tx_len - sizeof(*pkt));
 	experiment_packet_finalize(pkt);
 
-	LOG_INF("TX: node=%u seq=%u size=%u time=%u type=%u", device_id, pkt->sequence, tx_len,
-		pkt->tx_time_ms, pkt->message_type);
+	LOG_INF("TX: node=%u seq=%u size=%u time=%u type=%u", exp_device_id(), pkt->sequence,
+		tx_len, pkt->tx_time_ms, pkt->message_type);
 
-	err = transmit(tx_handle, tx_buf, tx_len);
+	err = transmit(tx_handle, tx_buf, tx_len, tx_power, mcs);
 	if (err) {
 		LOG_ERR("Transmission failed, err %d", err);
 		return err;
 	}
-
-	/* Increment rule: after successful queue; count after TX-complete wait in caller. */
 	return 0;
 }
 
-static int do_shutdown(void)
+static void clear_seq_tracks(void)
 {
-	int err;
-
-	LOG_INF("Shutting down");
-
-	err = nrf_modem_dect_phy_deactivate();
-	if (err) {
-		LOG_ERR("nrf_modem_dect_phy_deactivate failed, err %d", err);
-		return err;
-	}
-
-	k_sem_take(&deinit_sem, K_FOREVER);
-
-	err = nrf_modem_dect_phy_deinit();
-	if (err) {
-		LOG_ERR("nrf_modem_dect_phy_deinit() failed, err %d", err);
-		return err;
-	}
-
-	k_sem_take(&deinit_sem, K_FOREVER);
-
-	err = nrf_modem_lib_shutdown();
-	if (err) {
-		LOG_ERR("nrf_modem_lib_shutdown() failed, err %d", err);
-		return err;
-	}
-
-	LOG_INF("Bye!");
-	return 0;
+	memset(seq_tracks, 0, sizeof(seq_tracks));
 }
+
+static void radio_thread_fn(void *p1, void *p2, void *p3)
+{
+	ARG_UNUSED(p1);
+	ARG_UNUSED(p2);
+	ARG_UNUSED(p3);
+
+	uint32_t tx_handle = 0;
+	uint32_t rx_handle = 1;
+	uint8_t tx_buf[DATA_LEN_MAX];
+	struct exp_runtime *rt = exp_runtime_get();
+
+	while (1) {
+		exp_wait_until_start();
+		clear_seq_tracks();
+		LOG_INF("run active");
+
+		while (exp_is_running()) {
+			int err;
+
+			if (IS_ENABLED(CONFIG_EXPERIMENT_TEST_MODE_RX_ONLY)) {
+				err = receive(rx_handle);
+				if (err) {
+					LOG_ERR("Reception failed, err %d", err);
+					exp_request_stop();
+					exp_print_summary("rx_error");
+					break;
+				}
+				k_sem_take(&operation_sem, K_FOREVER);
+				continue;
+			}
+
+			err = send_one(tx_handle, tx_buf);
+			if (err) {
+				exp_request_stop();
+				exp_print_summary("tx_error");
+				break;
+			}
+
+			k_sem_take(&operation_sem, K_FOREVER);
+
+			exp_runtime_lock();
+			rt->sequence++;
+			rt->tx_sent++;
+			uint32_t sent = rt->tx_sent;
+			uint32_t count = rt->tx_count;
+			uint32_t interval = rt->tx_interval_ms;
+			exp_runtime_unlock();
+
+			if (count && sent >= count) {
+				exp_request_stop();
+				exp_print_summary("count_reached");
+				LOG_INF("Reached transmission count (%u)", count);
+				break;
+			}
+
+			if (!exp_is_running()) {
+				exp_print_summary("stop");
+				break;
+			}
+
+			if (IS_ENABLED(CONFIG_EXPERIMENT_TEST_MODE_TX_RX)) {
+				err = receive(rx_handle);
+				if (err) {
+					LOG_ERR("Reception failed, err %d", err);
+					exp_request_stop();
+					exp_print_summary("rx_error");
+					break;
+				}
+				k_sem_take(&operation_sem, K_FOREVER);
+			}
+
+			if (!exp_is_running()) {
+				exp_print_summary("stop");
+				break;
+			}
+
+			if (interval > 0) {
+				k_sleep(K_MSEC(interval));
+			}
+		}
+	}
+}
+
+static K_THREAD_STACK_DEFINE(radio_stack, RADIO_STACK_SIZE);
+static struct k_thread radio_thread_data;
 
 int main(void)
 {
 	int err;
-	uint32_t tx_handle = 0;
-	uint32_t rx_handle = 1;
-	uint32_t sequence = 0;
-	uint8_t tx_buf[DATA_LEN_MAX];
 
-	LOG_INF("NR+ Experimental Firmware v1.0 (01_baseline)");
-	LOG_INF("mode=%s carrier=%d net=0x%x mcs=%d tx_pwr=%d", test_mode_str(), CONFIG_CARRIER,
-		CONFIG_NETWORK_ID, CONFIG_MCS, CONFIG_TX_POWER);
+	exp_runtime_init();
+
+	LOG_INF("NR+ Experimental Firmware v1.1 (01_baseline)");
+	LOG_INF("mode=%s carrier=%d net=0x%x shell=%d wait_for_start=%d", exp_mode_str(),
+		CONFIG_CARRIER, CONFIG_NETWORK_ID, IS_ENABLED(CONFIG_EXPERIMENT_SHELL),
+		IS_ENABLED(CONFIG_EXPERIMENT_WAIT_FOR_START));
 
 	err = nrf_modem_lib_init();
 	if (err) {
@@ -511,7 +572,7 @@ int main(void)
 	}
 
 	k_sem_take(&operation_sem, K_FOREVER);
-	if (exit) {
+	if (phy_fatal) {
 		return -EIO;
 	}
 
@@ -522,7 +583,7 @@ int main(void)
 	}
 
 	k_sem_take(&operation_sem, K_FOREVER);
-	if (exit) {
+	if (phy_fatal) {
 		return -EIO;
 	}
 
@@ -533,58 +594,30 @@ int main(void)
 	}
 
 	k_sem_take(&operation_sem, K_FOREVER);
-	if (exit) {
+	if (phy_fatal) {
 		return -EIO;
 	}
 
 	resolve_device_id();
-	LOG_INF("device_id=%u (0x%04x) pkt_size=%d", device_id, device_id,
-		CONFIG_EXPERIMENT_PACKET_SIZE);
+	LOG_INF("device_id=%u (0x%04x)", exp_device_id(), exp_device_id());
+	LOG_INF("Commands: exp status | exp sett | exp start [count] | exp stop");
 
 	err = nrf_modem_dect_phy_capability_get();
 	if (err) {
 		LOG_ERR("nrf_modem_dect_phy_capability_get failed, err %d", err);
 	}
 
-	while (1) {
-		if (IS_ENABLED(CONFIG_EXPERIMENT_TEST_MODE_RX_ONLY)) {
-			err = receive(rx_handle);
-			if (err) {
-				LOG_ERR("Reception failed, err %d", err);
-				return err;
-			}
-			k_sem_take(&operation_sem, K_FOREVER);
-			continue;
-		}
+	k_thread_create(&radio_thread_data, radio_stack, RADIO_STACK_SIZE, radio_thread_fn, NULL,
+			NULL, NULL, 5, 0, K_NO_WAIT);
+	k_thread_name_set(&radio_thread_data, "exp_radio");
 
-		err = send_one(tx_handle, sequence, tx_buf);
-		if (err) {
-			return err;
-		}
-
-		k_sem_take(&operation_sem, K_FOREVER);
-		sequence++;
-		tx_packet_count++;
-
-		if (CONFIG_TX_TRANSMISSIONS && sequence >= CONFIG_TX_TRANSMISSIONS) {
-			LOG_INF("Reached maximum number of transmissions (%d)",
-				CONFIG_TX_TRANSMISSIONS);
-			break;
-		}
-
-		if (IS_ENABLED(CONFIG_EXPERIMENT_TEST_MODE_TX_RX)) {
-			err = receive(rx_handle);
-			if (err) {
-				LOG_ERR("Reception failed, err %d", err);
-				return err;
-			}
-			k_sem_take(&operation_sem, K_FOREVER);
-		}
-
-		if (CONFIG_TX_INTERVAL_MS > 0) {
-			k_sleep(K_MSEC(CONFIG_TX_INTERVAL_MS));
-		}
+	if (!IS_ENABLED(CONFIG_EXPERIMENT_WAIT_FOR_START)) {
+		exp_request_start(UINT32_MAX);
+		LOG_INF("auto-start enabled");
+	} else {
+		LOG_INF("waiting for: exp start");
 	}
 
-	return do_shutdown();
+	/* Shell (if enabled) runs on UART; radio thread does the work. */
+	return 0;
 }

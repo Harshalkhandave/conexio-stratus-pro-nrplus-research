@@ -10,7 +10,7 @@ Engineering workspace for characterizing **DECT NR+** on the [Conexio Stratus Pr
 
 ## Current firmware
 
-**[`experiments/01_baseline/`](experiments/01_baseline/)** — NR+ experimental firmware (instrumented PHY baseline): sequenced packets, TX/RX timestamps, structured serial logs, configurable test roles.
+**[`experiments/01_baseline/`](experiments/01_baseline/)** — NR+ experimental firmware (instrumented PHY baseline): sequenced packets, TX/RX timestamps, structured serial logs, configurable test roles, optional `exp` shell.
 
 Supporting material:
 
@@ -40,7 +40,8 @@ Full application details, overlays, and bring-up checks: [`experiments/01_baseli
 
 | Path | Purpose |
 |------|---------|
-| `experiments/01_baseline/` | Instrumented NR+ baseline firmware |
+| `experiments/01_baseline/` | Instrumented NR+ baseline firmware (+ `exp` shell) |
+| `experiments/02_range/` | Range-test procedure and notes |
 | `tools/logger/` | Serial log capture |
 | `tools/parser/` | Parse `TX:` / `RX:` lines to CSV |
 | `data/` | Raw captures and derived datasets |

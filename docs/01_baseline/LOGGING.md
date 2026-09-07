@@ -35,12 +35,24 @@ RX: node=<local_id> seq=<n> from=<id> rssi=<int>.<frac> time=<rx_ms> tx_time=<ms
 ### Startup
 
 ```text
-NR+ Experimental Firmware v1.0 (01_baseline)
-mode=… carrier=… net=… …
-device_id=… pkt_size=…
+NR+ Experimental Firmware v1.1 (01_baseline)
+mode=… carrier=… shell=… wait_for_start=…
+device_id=…
+Commands: exp status | exp sett | exp start [count] | exp stop
 ```
 
 With `CONFIG_EXPERIMENT_LOG_COMPACT=n`, additional diagnostic lines may appear.
+
+### Run summary
+
+Printed when a run ends (`exp stop`, TX count reached, or error):
+
+```text
+SUMMARY: role=tx reason=count_reached device_id=… sent=1000 count_cfg=1000
+SUMMARY: role=rx reason=stop device_id=… from=… ok=… fail=… gaps=… rssi_min=… rssi_avg=… rssi_max=…
+```
+
+Use TX `sent` and RX `ok` for packet delivery ratio with asymmetric roles.
 
 ## Host capture
 

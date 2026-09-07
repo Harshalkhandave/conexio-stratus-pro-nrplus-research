@@ -59,6 +59,8 @@ See also `experiments/01_baseline/README.md`.
 | `CONFIG_EXPERIMENT_DEVICE_ID_OVERRIDE` | n | Optional fixed ID |
 | `CONFIG_EXPERIMENT_DEVICE_ID` | 1 | Used when override is enabled |
 | `CONFIG_EXPERIMENT_LOG_COMPACT` | y | Prefer `TX:` / `RX:` lines |
+| `CONFIG_EXPERIMENT_SHELL` | y | Enable `exp` UART commands |
+| `CONFIG_EXPERIMENT_WAIT_FOR_START` | n | If y, wait for `exp start` |
 
 ### Constants in application code
 

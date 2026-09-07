@@ -119,6 +119,23 @@ config EXPERIMENT_LOG_COMPACT
 	   Emit machine-parseable TX: and RX: lines at INF.
 	   Extra human-readable bring-up logs stay at DBG.
 
+config EXPERIMENT_SHELL
+	bool "Enable exp shell commands on UART"
+	default y
+	select SHELL
+	select SHELL_BACKEND_SERIAL
+	help
+	   Adds exp status|sett|start|stop. Auto-start still runs unless
+	   EXPERIMENT_WAIT_FOR_START is enabled.
+
+config EXPERIMENT_WAIT_FOR_START
+	bool "Do not auto-start; wait for 'exp start'"
+	default n
+	depends on EXPERIMENT_SHELL
+	help
+	   When disabled (default), the radio loop starts after boot.
+	   When enabled, the board stays idle until: exp start
+
 module = DECT_PHY_HELLO
 module-str = DECT NR+ PHY Hello
 source "$(ZEPHYR_BASE)/subsys/logging/Kconfig.template.log_config"

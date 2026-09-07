@@ -1,0 +1,44 @@
+# Default range-test matrix for tools/range_campaign.py
+# Edit distances / environments to match your site.
+# You will be prompted to confirm placement before each row.
+
+defaults:
+  interval_ms: 200
+  power: 10
+  mcs: 0
+  size: 15
+  count: 1000
+  # Extra seconds after expected TX duration before forcing RX stop
+  settle_s: 3
+
+# Each test: script pauses and asks you to confirm boards are placed.
+tests:
+  - id: los_5m
+    distance_m: 5
+    wall_count: 0
+    environment: los
+    orientation: nominal
+
+  - id: los_10m
+    distance_m: 10
+    wall_count: 0
+    environment: los
+    orientation: nominal
+
+  - id: los_20m
+    distance_m: 20
+    wall_count: 0
+    environment: los
+    orientation: nominal
+
+  - id: wall1_10m
+    distance_m: 10
+    wall_count: 1
+    environment: one_wall
+    orientation: nominal
+
+  - id: wall2_10m
+    distance_m: 10
+    wall_count: 2
+    environment: multi_wall
+    orientation: nominal

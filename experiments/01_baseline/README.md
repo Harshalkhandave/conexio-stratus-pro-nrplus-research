@@ -6,8 +6,10 @@ Based on Nordic’s `hello_dect` sample, extended for repeatable lab measurement
 ## Features
 
 - Packed PDU with **sequence**, **TX timestamp**, and XOR **checksum**
-- Structured logs: `TX:` / `RX:`
-- Roles: **tx_rx** (default), **tx_only**, **rx_only**
+- Structured logs: `TX:` / `RX:` / `SUMMARY:`
+- Roles: **tx_rx** (default), **tx_only**, **rx_only** (build overlays)
+- **Auto-start on boot** (same simple usage as before)
+- Optional UART shell: `exp status|sett|start|stop` for lab parameter changes without rebuild
 - Kconfig options for interval, packet count, size, message type, optional device ID override
 
 ## Requirements
@@ -46,8 +48,26 @@ Guide: [Compiling Applications with nRF Connect Extension for VS Code](https://d
 | `overlay-tx-only.conf` | Transmit only |
 | `overlay-rx-only.conf` | Receive only |
 | `overlay-1000pkts.conf` | Stop after 1000 transmissions |
+| `overlay-wait-start.conf` | Idle until `exp start` (formal campaigns) |
 
 In the UI, combine fragments as needed (region + role + packet count).
+
+## Shell (`exp`)
+
+Default image includes the Zephyr shell on the same UART as logs (**115200**). Open the serial terminal, press Enter if needed for a prompt.
+
+| Command | Meaning |
+|---------|---------|
+| `exp status` | Mode, settings, counters |
+| `exp sett <key> <value>` | `interval` / `count` / `power` / `mcs` / `size` / `type` (stop run first) |
+| `exp start` | Start a run (resets counters) |
+| `exp start 1000` | Start and set count to 1000 |
+| `exp stop` | Stop after the current TX/RX step; prints `SUMMARY:` |
+
+**Simple usage:** leave defaults — board auto-starts after boot; you never need the shell.  
+**Lab usage:** change power/interval/count from the shell between range tests; keep roles as TX-only / RX-only overlays.
+
+Carrier/region stays in `overlay-us.conf` / `overlay-eu.conf` (not changed at runtime).
 
 ### Optional: west CLI
 
@@ -72,6 +92,8 @@ Full tables: [configuration & bring-up](../../docs/01_baseline/BASELINE.md)
 | `CONFIG_EXPERIMENT_DEST_RECEIVER_ID` | 0 | `0` = broadcast |
 | `CONFIG_EXPERIMENT_DEVICE_ID_OVERRIDE` | n | Optional fixed ID |
 | `CONFIG_EXPERIMENT_LOG_COMPACT` | y | Prefer `TX:` / `RX:` lines |
+| `CONFIG_EXPERIMENT_SHELL` | y | Enable `exp` commands |
+| `CONFIG_EXPERIMENT_WAIT_FOR_START` | n | If y, wait for `exp start` |
 
 ## Packet format & logging
 
@@ -81,6 +103,7 @@ Full tables: [configuration & bring-up](../../docs/01_baseline/BASELINE.md)
 ```text
 TX: node=<id> seq=<n> size=<B> time=<tx_ms> type=<t>
 RX: node=<id> seq=<n> from=<id> rssi=<d.d> time=<rx_ms> tx_time=<ms> size=<B> type=<t> cs=ok|fail
+SUMMARY: role=tx|rx|tx_rx reason=... ...
 ```
 
 ## Host tools
@@ -104,6 +127,7 @@ Board Roots / `BOARD_ROOT` must point at `conexio-firmware-sdk`.
 
 ## Bring-up check
 
-1. Flash two boards with the same region overlay (default role `tx_rx`).
-2. Open serial on both; confirm `device_id=…` and `TX:` / `RX:` lines.
+1. Flash two boards with the same region overlay (default role `tx_rx`), or use `tx_only` + `rx_only` for cleaner links.
+2. Open serial on both; confirm `device_id=…` and `TX:` / `RX:` lines (auto-start).
 3. Confirm `seq` increases and RX shows `cs=ok`.
+4. Optional: `exp status`, then `exp stop` / `exp start 100` and check `SUMMARY:`.
