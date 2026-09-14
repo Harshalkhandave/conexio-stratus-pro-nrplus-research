@@ -1,0 +1,133 @@
+#
+# Copyright (c) 2024 Nordic Semiconductor
+# Copyright (c) 2026 Conexio Technologies, Inc
+#
+# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+#
+
+config CARRIER
+	int "Carrier to use"
+	default 0
+	help
+	   The availability of the channels and the exact regulation to use them varies in different countries.
+	   See ETSI TS 103 636-2 5.4.2 for the calculation.
+	   Band index 1 is set when the carrier is within the range of 525 to 551.
+	   This is the only range allowed for band index 1 as other carriers will interfere with other radio devices, including LTE devices.
+
+config NETWORK_ID
+	int "Network ID"
+	range 1 4294967295
+	default 91
+
+config MCS
+	int "MCS"
+	default 0
+	help
+	   The MCS impacts how much data can fit into each subslot.
+
+config TX_POWER
+	int "TX power"
+	range 0 13
+	default 13
+	help
+	   Transmission power, max 19 dBm due to hardware limitations.
+	   See table 6.2.1-3 of ETSI TS 103 636-4 v1.5.1.
+
+config TX_TRANSMISSIONS
+	int "TX transmissions (source DATA count)"
+	range 0 4294967295
+	default 0
+	help
+	   Number of DATA packets a source sends before stopping.
+	   Use 0 for forever. Ignored for relay/sink roles.
+
+config RX_PERIOD_S
+	int "RX period"
+	default 2
+	help
+	   Receive window period in seconds between TX / forward work.
+
+config TX_INTERVAL_MS
+	int "Extra interval between source DATA iterations (ms)"
+	default 500
+
+config HELLO_INTERVAL_MS
+	int "HELLO advertisement interval (ms)"
+	default 2000
+	help
+	   0 disables periodic HELLO. Applies to all roles while running.
+
+choice TOPO_DEFAULT_ROLE
+	prompt "Default topology role (overridable via shell)"
+	default TOPO_ROLE_SOURCE
+
+config TOPO_ROLE_SOURCE
+	bool "Source (originate DATA)"
+
+config TOPO_ROLE_RELAY
+	bool "Relay (forward DATA toward dst)"
+
+config TOPO_ROLE_SINK
+	bool "Sink (accept DATA when dst matches)"
+
+endchoice
+
+config TOPO_DEST_ID
+	int "Default DATA destination device ID (source)"
+	range 0 65535
+	default 0
+	help
+	   Source sets packet dst to this ID. 0 means unset — set via shell before start.
+
+config TOPO_MAX_HOPS
+	int "Max hop_count before drop (relay)"
+	range 1 16
+	default 3
+
+config TOPO_PACKET_SIZE
+	int "On-air packet size (bytes)"
+	range 18 32
+	default 18
+	help
+	   Total PDC payload size. Must be >= sizeof(topo_packet) (18).
+	   Extra bytes are zero-padded after the header.
+
+config TOPO_DEST_RECEIVER_ID
+	int "PHY RX filter destination identity"
+	range 0 65535
+	default 0
+	help
+	   PHY RX filter receiver_identity. 0 = broadcast / accept all.
+
+config TOPO_DEVICE_ID_OVERRIDE
+	bool "Override hardware device ID"
+	default n
+
+config TOPO_DEVICE_ID
+	int "Device ID override value"
+	depends on TOPO_DEVICE_ID_OVERRIDE
+	range 1 65535
+	default 1
+
+config TOPO_SHELL
+	bool "Enable exp shell commands on UART"
+	default y
+	select SHELL
+	select SHELL_BACKEND_SERIAL
+	help
+	   Adds exp status|role|sett|start|stop|neigh for topology lab control.
+
+config TOPO_WAIT_FOR_START
+	bool "Do not auto-start; wait for 'exp start'"
+	default y
+	depends on TOPO_SHELL
+	help
+	   Default on for topology so roles/RF can be set before the run.
+
+module = DECT_PHY_TOPO
+module-str = DECT NR+ PHY Topology
+source "$(ZEPHYR_BASE)/subsys/logging/Kconfig.template.log_config"
+
+menu "Zephyr Kernel"
+source "Kconfig.zephyr"
+endmenu
