@@ -49,6 +49,7 @@ struct topo_runtime {
 	uint8_t tx_power;
 	uint8_t mcs;
 	uint16_t packet_size;
+	bool dedup; /* relay duplicate detection on/off */
 
 	uint32_t sequence;
 	uint32_t data_sent;
@@ -77,6 +78,8 @@ struct topo_fwd_item {
 };
 
 void topo_runtime_init(void);
+/** Restore Kconfig defaults into RAM without re-initing locks (after factory clear). */
+void topo_runtime_restore_defaults(void);
 struct topo_runtime *topo_runtime_get(void);
 void topo_runtime_lock(void);
 void topo_runtime_unlock(void);
@@ -91,6 +94,9 @@ void topo_wait_until_start(void);
 void topo_print_status(void);
 void topo_print_summary(const char *reason);
 void topo_print_neighbors(void);
+
+/** Whether a saved flash profile should auto-start after boot. */
+bool topo_should_autostart(void);
 
 const char *topo_role_str(enum topo_role role);
 bool topo_role_from_str(const char *s, enum topo_role *out);

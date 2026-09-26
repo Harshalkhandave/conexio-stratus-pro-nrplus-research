@@ -1,0 +1,22 @@
+{
+  "tool": "topology_visualizer",
+  "version": "2.0.0",
+  "started": "2026-09-25T18:19:04",
+  "nodes": [
+    {
+      "port": "COM7",
+      "name": "Node B",
+      "file": "Node_B_log.txt"
+    },
+    {
+      "port": "socket://10.0.0.139:7777",
+      "name": "Node A",
+      "file": "Node_A_log.txt"
+    },
+    {
+      "port": "socket://10.0.0.139:7778",
+      "name": "Node C",
+      "file": "Node_C_log.txt"
+    }
+  ]
+}

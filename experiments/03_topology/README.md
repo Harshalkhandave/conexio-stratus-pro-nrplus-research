@@ -28,16 +28,20 @@ Optional Kconfig defaults: `CONFIG_TOPO_ROLE_RELAY`, `CONFIG_TOPO_ROLE_SINK`, `C
 
 ## Shell (`exp`)
 
-Boards boot **idle** (`TOPO_WAIT_FOR_START`). Set role / RF, then start.
+Boards boot **idle** by default (`TOPO_WAIT_FOR_START`), unless a **saved flash profile** has `autostart=on` (see persist below).
 
 | Command | Meaning |
 |---------|---------|
-| `exp status` | Role, RF, counters |
+| `exp status` | Role, RF, counters, `autostart=` / `persist=` |
 | `exp role source\|relay\|sink` | Set role (aliases: `src`, `router`, `gateway`) |
 | `exp sett <key> <value>` | See keys below |
 | `exp neigh` | Neighbor table (from HELLO/DATA RSSI) |
 | `exp start` / `exp start 100` | Start run (source needs `dest`) |
 | `exp stop` | Stop; radio prints `SUMMARY:` |
+| `exp autostart on\|off` | Set auto-start flag in RAM |
+| `exp save` | Persist role/RF/autostart to flash |
+| `exp load` | Reload flash profile into RAM |
+| `exp factory` | Erase flash profile; restore Kconfig defaults |
 
 ### `exp sett` keys
 
@@ -52,8 +56,21 @@ Boards boot **idle** (`TOPO_WAIT_FOR_START`). Set role / RF, then start.
 | `mcs` | 0..7 |
 | `size` | 18..32 |
 | `max_hops` | 1..16 (relay drop if `hop_count >= max`) |
+| `autostart` | `on`/`off` (same as `exp autostart`) |
 
-Stop the run before changing settings.
+Stop the run before changing settings. RAM changes need **`exp save`** to survive reset.
+
+### Persist & autostart (Week 4)
+
+Full guide: [`docs/03_topology/PERSIST_AUTOSTART.md`](../../docs/03_topology/PERSIST_AUTOSTART.md)
+
+```text
+exp role sink
+exp sett hello 0
+exp autostart on
+exp save
+# reset board → should auto-start as sink
+```
 
 ## Quick three-board bring-up
 
@@ -109,7 +126,8 @@ SUMMARY: role=… …
 ## Report & visualizer
 
 - How Exp 1–4 were run: [`docs/03_topology/PROCEDURE.md`](../../docs/03_topology/PROCEDURE.md)
+- Persist / autostart after reset: [`docs/03_topology/PERSIST_AUTOSTART.md`](../../docs/03_topology/PERSIST_AUTOSTART.md)
 - Characterization report: [`reports/03_topology/NR_Topology_Characterization_Report.md`](../../reports/03_topology/NR_Topology_Characterization_Report.md)
 - Raw logs: `data/03_topology/`
-- Week 3/4 visualizer plan: [`docs/03_topology/VISUALIZER_PLAN.md`](../../docs/03_topology/VISUALIZER_PLAN.md)
-- Visualizer app: [`tools/topology_visualizer/`](../../tools/topology_visualizer/)
+- Visualizer plan: [`docs/03_topology/VISUALIZER_PLAN.md`](../../docs/03_topology/VISUALIZER_PLAN.md)
+- **NR+ Network Visualizer v1.0:** [`tools/topology_visualizer/`](../../tools/topology_visualizer/) (`python app.py`)

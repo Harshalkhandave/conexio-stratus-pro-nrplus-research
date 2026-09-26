@@ -84,6 +84,15 @@ config TOPO_MAX_HOPS
 	range 1 16
 	default 3
 
+config TOPO_DEDUP
+	bool "Relay duplicate detection (drop re-seen src+seq pairs)"
+	default y
+	help
+	  When enabled the relay keeps a small table of recently forwarded
+	  (source, sequence) pairs and silently drops packets it has already
+	  forwarded.  Disable for reboot / healing experiments where the
+	  source sequence counter resets to 0 on every boot.
+
 config TOPO_PACKET_SIZE
 	int "On-air packet size (bytes)"
 	range 18 32
@@ -118,11 +127,27 @@ config TOPO_SHELL
 	   Adds exp status|role|sett|start|stop|neigh for topology lab control.
 
 config TOPO_WAIT_FOR_START
-	bool "Do not auto-start; wait for 'exp start'"
+	bool "Do not auto-start; wait for 'exp start' (unless NVS autostart)"
 	default y
 	depends on TOPO_SHELL
 	help
 	   Default on for topology so roles/RF can be set before the run.
+	   If a flash profile was saved with autostart=on, the board still
+	   auto-starts after reset even when this option is enabled.
+
+config TOPO_PERSIST
+	bool "Persist role/RF/autostart in flash (exp save)"
+	default y
+	depends on TOPO_SHELL
+	select SETTINGS
+	select NVS
+	select FLASH
+	select FLASH_MAP
+	help
+	   Enables exp save|load|factory|autostart so settings survive reset
+	   (Week 4 reboot / power-fail tests). The NVS settings backend must
+	   be chosen in prj.conf (CONFIG_SETTINGS_NVS=y); it is a choice
+	   symbol and cannot be selected from here.
 
 module = DECT_PHY_TOPO
 module-str = DECT NR+ PHY Topology

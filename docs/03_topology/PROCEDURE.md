@@ -154,3 +154,11 @@ Experiments differ by **placement**, **roles**, and **settings**, not by differe
 2. Capture sink/relay `SUMMARY` after `exp stop`.
 3. Confirm log files under the correct `data/03_topology/exp_*` folder.
 4. Note establishment: host time of A `>>> exp start` vs first C `DELIVER`.
+
+---
+
+## 10. Persist / autostart (Week 4 prep)
+
+For reboot and power-fail tests, save each node’s role so it resumes after reset:
+
+See [`PERSIST_AUTOSTART.md`](PERSIST_AUTOSTART.md) — `exp autostart on` then `exp save`.

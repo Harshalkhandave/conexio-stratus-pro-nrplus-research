@@ -12,6 +12,10 @@
 #include <zephyr/sys/printk.h>
 #include <zephyr/sys/util.h>
 
+#if IS_ENABLED(CONFIG_TOPO_PERSIST)
+#include "topo_persist.h"
+#endif
+
 static struct topo_runtime rt;
 static uint16_t g_device_id;
 static struct k_mutex rt_lock;
@@ -56,7 +60,12 @@ void topo_runtime_init(void)
 {
 	k_mutex_init(&rt_lock);
 	k_sem_init(&start_sem, 0, 1);
+	topo_runtime_restore_defaults();
+}
 
+void topo_runtime_restore_defaults(void)
+{
+	k_mutex_lock(&rt_lock, K_FOREVER);
 	rt.running = false;
 	rt.role = default_role();
 	rt.dest_id = (uint16_t)CONFIG_TOPO_DEST_ID;
@@ -67,8 +76,10 @@ void topo_runtime_init(void)
 	rt.tx_power = (uint8_t)CONFIG_TX_POWER;
 	rt.mcs = (uint8_t)CONFIG_MCS;
 	rt.packet_size = (uint16_t)CONFIG_TOPO_PACKET_SIZE;
+	rt.dedup = IS_ENABLED(CONFIG_TOPO_DEDUP);
 	memset(rt.neigh, 0, sizeof(rt.neigh));
 	reset_stats_locked();
+	k_mutex_unlock(&rt_lock);
 }
 
 struct topo_runtime *topo_runtime_get(void)
@@ -235,6 +246,12 @@ bool topo_seen_is_dup(uint16_t src, uint32_t sequence)
 
 	k_mutex_lock(&rt_lock, K_FOREVER);
 
+	/* When dedup is disabled, always treat as new. */
+	if (!rt.dedup) {
+		k_mutex_unlock(&rt_lock);
+		return false;
+	}
+
 	for (int i = 0; i < TOPO_SEEN_MAX; i++) {
 		if (rt.seen[i].used && rt.seen[i].src == src && rt.seen[i].sequence == sequence) {
 			rt.fwd_drop_dup++;
@@ -299,12 +316,30 @@ void topo_print_status(void)
 	printk("  carrier=%d net=0x%x\n", CONFIG_CARRIER, CONFIG_NETWORK_ID);
 	printk("  interval_ms=%u hello_ms=%u count=%u (0=forever)\n", snap.tx_interval_ms,
 	       snap.hello_interval_ms, snap.tx_count);
-	printk("  power=%u mcs=%u size=%u\n", snap.tx_power, snap.mcs, snap.packet_size);
+	printk("  power=%u mcs=%u size=%u dedup=%d\n", snap.tx_power, snap.mcs, snap.packet_size,
+	       snap.dedup ? 1 : 0);
+#if IS_ENABLED(CONFIG_TOPO_PERSIST)
+	printk("  autostart=%d persist=%d\n", topo_autostart_get() ? 1 : 0,
+	       topo_persist_present() ? 1 : 0);
+#endif
 	printk("  seq_next=%u data_sent=%u hello_sent=%u fwd_sent=%u\n", snap.sequence,
 	       snap.data_sent, snap.hello_sent, snap.fwd_sent);
 	printk("  rx_ok=%u rx_fail=%u deliver=%u fwd_dup=%u fwd_ttl=%u fwd_qfull=%u\n",
 	       snap.rx_ok, snap.rx_fail, snap.deliver_ok, snap.fwd_drop_dup, snap.fwd_drop_ttl,
 	       snap.fwd_drop_full);
+}
+
+bool topo_should_autostart(void)
+{
+	/* Kconfig overlay can force auto-start without NVS. */
+	if (!IS_ENABLED(CONFIG_TOPO_WAIT_FOR_START)) {
+		return true;
+	}
+#if IS_ENABLED(CONFIG_TOPO_PERSIST)
+	return topo_autostart_get();
+#else
+	return false;
+#endif
 }
 
 void topo_print_neighbors(void)

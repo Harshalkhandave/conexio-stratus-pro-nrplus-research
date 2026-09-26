@@ -46,7 +46,6 @@ desktop.ini
 *.tmp
 
 # --- Logs & local captures (keep folder via .gitkeep) ---
-data/**/*.txt
 data/**/*.csv
 data/**/*.log
 !data/**/.gitkeep

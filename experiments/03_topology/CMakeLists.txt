@@ -20,3 +20,7 @@ target_include_directories(app PRIVATE src)
 if(CONFIG_TOPO_SHELL)
   target_sources(app PRIVATE src/topo_shell.c)
 endif()
+
+if(CONFIG_TOPO_PERSIST)
+  target_sources(app PRIVATE src/topo_persist.c)
+endif()

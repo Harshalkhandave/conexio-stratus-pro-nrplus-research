@@ -1,0 +1,435 @@
+===== serial capture start 2026-09-13T18:01:25 port=/dev/tty.usbserial-10 baud=115200 interact=True =====
+[18:01:59.561] All pins have been configured as non-secure
+[18:01:59.562] Booting TF-M v2.2.0
+[18:01:59.562] [Sec Thread] Secure image initializing!
+[18:01:59.695] 
+[18:01:59.696] *** Booting nRF Connect SDK v3.2.1-d8887f6f32df ***
+[18:01:59.696] *** Using Zephyr OS v4.2.99-ec78104f1569 ***
+[18:01:59.696] [00:00:00.259,368] <inf> app: NR+ Topology Firmware (03_topology)
+[18:01:59.901] [00:00:00.259,399] <inf> app: default_role=source carrier=1711 net=0x5b wait_for_start=1
+[18:02:01.026] [00:00:00.589,843] <inf> app: device_id=44720 (0xaeb0)
+[18:02:01.026] [00:00:00.589,843] <inf> app: Commands: exp status|role|sett|start|stop|neigh
+[18:02:01.230] [00:00:00.590,393] <inf> app: waiting for: exp start
+[18:02:36.306] >>> exp sett hello 0
+[18:02:36.459] exp sett hello 0
+[18:02:36.459] ok
+[18:02:59.666] >>> exp status
+[18:02:59.676] exp status
+[18:03:00.689] exp status:
+[18:03:00.689] role=source running=0 device_id=44720 dest_id=0 max_hops=3
+[18:03:00.689] carrier=1711 net=0x5b
+[18:03:00.689] interval_ms=500 hello_ms=0 count=0 (0=forever)
+[18:03:00.894] power=10 mcs=0 size=18
+[18:03:00.895] seq_next=0 data_sent=0 hello_sent=0 fwd_sent=0
+[18:03:00.895] rx_ok=0 rx_fail=0 deliver=0 fwd_dup=0 fwd_ttl=0 fwd_qfull=0
+[18:03:35.927] >>> exp role sink
+[18:03:35.932] exp role sink
+[18:03:35.932] role=sink
+[18:05:30.796] >>> exp start
+[18:05:30.918] exp start
+[18:05:30.918] started role=sink dest=0 count=0 (0=forever)
+[18:05:31.938] [00:03:31.386,688] <inf> app: run active role=sink
+[18:05:37.067] [00:03:36.634,857] <inf> app: RX: node=44720 type=DATA seq=0 src=56992 dst=44720 prev=56992 hop=0 rssi=-46.5 time=216634
+[18:05:37.272] [00:03:36.634,918] <inf> app: DELIVER: node=44720 seq=0 src=56992 prev=56992 hops=0 rssi=-46.5 time=216634
+[18:05:38.350] [00:03:37.918,548] <inf> app: RX: node=44720 type=DATA seq=0 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=217918
+[18:05:38.551] [00:03:37.918,579] <inf> app: DELIVER: node=44720 seq=0 src=56992 prev=14402 hops=1 rssi=-23.0 time=217918
+[18:05:39.570] [00:03:39.141,540] <inf> app: RX: node=44720 type=DATA seq=1 src=56992 dst=44720 prev=56992 hop=0 rssi=-48.0 time=219141
+[18:05:39.591] [00:03:39.141,571] <inf> app: DELIVER: node=44720 seq=1 src=56992 prev=56992 hops=0 rssi=-48.0 time=219141
+[18:05:39.591] [00:03:39.925,109] <inf> app: RX: node=44720 type=DATA seq=1 src=56992 dst=44720 prev=14402 hop=1 rssi=-22.5 time=219925
+[18:05:39.794] [00:03:39.925,140] <inf> app: DELIVER: node=44720 seq=1 src=56992 prev=14402 hops=1 rssi=-22.5 time=219925
+[18:05:42.080] [00:03:41.648,162] <inf> app: RX: node=44720 type=DATA seq=2 src=56992 dst=44720 prev=56992 hop=0 rssi=-47.0 time=221648
+[18:05:42.103] [00:03:41.648,193] <inf> app: DELIVER: node=44720 seq=2 src=56992 prev=56992 hops=0 rssi=-47.0 time=221648
+[18:05:42.103] [00:03:41.931,671] <inf> app: RX: node=44720 type=DATA seq=2 src=56992 dst=44720 prev=14402 hop=1 rssi=-22.5 time=221931
+[18:05:42.309] [00:03:41.931,701] <inf> app: DELIVER: node=44720 seq=2 src=56992 prev=14402 hops=1 rssi=-22.5 time=221931
+[18:05:44.587] [00:03:44.154,876] <inf> app: RX: node=44720 type=DATA seq=3 src=56992 dst=44720 prev=56992 hop=0 rssi=-46.5 time=224154
+[18:05:44.791] [00:03:44.154,907] <inf> app: DELIVER: node=44720 seq=3 src=56992 prev=56992 hops=0 rssi=-46.5 time=224154
+[18:05:46.370] [00:03:45.938,781] <inf> app: RX: node=44720 type=DATA seq=3 src=56992 dst=44720 prev=14402 hop=1 rssi=-22.5 time=225938
+[18:05:46.394] [00:03:45.938,812] <inf> app: DELIVER: node=44720 seq=3 src=56992 prev=14402 hops=1 rssi=-22.5 time=225938
+[18:05:46.394] [00:03:46.661,499] <inf> app: RX: node=44720 type=DATA seq=4 src=56992 dst=44720 prev=56992 hop=0 rssi=-45.5 time=226661
+[18:05:46.599] [00:03:46.661,529] <inf> app: DELIVER: node=44720 seq=4 src=56992 prev=56992 hops=0 rssi=-45.5 time=226661
+[18:05:48.377] [00:03:47.945,343] <inf> app: RX: node=44720 type=DATA seq=4 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=227945
+[18:05:48.580] [00:03:47.945,373] <inf> app: DELIVER: node=44720 seq=4 src=56992 prev=14402 hops=1 rssi=-23.0 time=227945
+[18:05:49.600] [00:03:49.168,121] <inf> app: RX: node=44720 type=DATA seq=5 src=56992 dst=44720 prev=56992 hop=0 rssi=-46.0 time=229168
+[18:05:49.623] [00:03:49.168,151] <inf> app: DELIVER: node=44720 seq=5 src=56992 prev=56992 hops=0 rssi=-46.0 time=229168
+[18:05:49.623] [00:03:49.951,873] <inf> app: RX: node=44720 type=DATA seq=5 src=56992 dst=44720 prev=14402 hop=1 rssi=-22.5 time=229951
+[18:05:49.828] [00:03:49.951,904] <inf> app: DELIVER: node=44720 seq=5 src=56992 prev=14402 hops=1 rssi=-22.5 time=229951
+[18:05:52.106] [00:03:51.674,743] <inf> app: RX: node=44720 type=DATA seq=6 src=56992 dst=44720 prev=56992 hop=0 rssi=-45.0 time=231674
+[18:05:52.129] [00:03:51.674,774] <inf> app: DELIVER: node=44720 seq=6 src=56992 prev=56992 hops=0 rssi=-45.0 time=231674
+[18:05:52.129] [00:03:51.958,435] <inf> app: RX: node=44720 type=DATA seq=6 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=231958
+[18:05:52.334] [00:03:51.958,435] <inf> app: DELIVER: node=44720 seq=6 src=56992 prev=14402 hops=1 rssi=-23.0 time=231958
+[18:05:54.613] [00:03:54.181,427] <inf> app: RX: node=44720 type=DATA seq=7 src=56992 dst=44720 prev=56992 hop=0 rssi=-45.0 time=234181
+[18:05:54.818] [00:03:54.181,457] <inf> app: DELIVER: node=44720 seq=7 src=56992 prev=56992 hops=0 rssi=-45.0 time=234181
+[18:05:56.397] [00:03:55.965,576] <inf> app: RX: node=44720 type=DATA seq=7 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=235965
+[18:05:56.420] [00:03:55.965,637] <inf> app: DELIVER: node=44720 seq=7 src=56992 prev=14402 hops=1 rssi=-23.0 time=235965
+[18:05:56.420] [00:03:56.688,079] <inf> app: RX: node=44720 type=DATA seq=8 src=56992 dst=44720 prev=56992 hop=0 rssi=-44.5 time=236688
+[18:05:56.622] [00:03:56.688,079] <inf> app: DELIVER: node=44720 seq=8 src=56992 prev=56992 hops=0 rssi=-44.5 time=236688
+[18:05:58.404] [00:03:57.972,137] <inf> app: RX: node=44720 type=DATA seq=8 src=56992 dst=44720 prev=14402 hop=1 rssi=-22.5 time=237972
+[18:05:58.606] [00:03:57.972,167] <inf> app: DELIVER: node=44720 seq=8 src=56992 prev=14402 hops=1 rssi=-22.5 time=237972
+[18:05:59.625] [00:03:59.194,671] <inf> app: RX: node=44720 type=DATA seq=9 src=56992 dst=44720 prev=56992 hop=0 rssi=-45.5 time=239194
+[18:05:59.644] [00:03:59.194,702] <inf> app: DELIVER: node=44720 seq=9 src=56992 prev=56992 hops=0 rssi=-45.5 time=239194
+[18:05:59.644] [00:03:59.978,668] <inf> app: RX: node=44720 type=DATA seq=9 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=239978
+[18:05:59.846] [00:03:59.978,698] <inf> app: DELIVER: node=44720 seq=9 src=56992 prev=14402 hops=1 rssi=-23.0 time=239978
+[18:06:02.133] [00:04:01.701,293] <inf> app: RX: node=44720 type=DATA seq=10 src=56992 dst=44720 prev=56992 hop=0 rssi=-45.5 time=241701
+[18:06:02.156] [00:04:01.701,354] <inf> app: DELIVER: node=44720 seq=10 src=56992 prev=56992 hops=0 rssi=-45.5 time=241701
+[18:06:02.156] [00:04:01.985,229] <inf> app: RX: node=44720 type=DATA seq=10 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=241985
+[18:06:02.361] [00:04:01.985,229] <inf> app: DELIVER: node=44720 seq=10 src=56992 prev=14402 hops=1 rssi=-23.0 time=241985
+[18:06:04.639] [00:04:04.208,007] <inf> app: RX: node=44720 type=DATA seq=11 src=56992 dst=44720 prev=56992 hop=0 rssi=-44.0 time=244207
+[18:06:04.845] [00:04:04.208,038] <inf> app: DELIVER: node=44720 seq=11 src=56992 prev=56992 hops=0 rssi=-44.0 time=244207
+[18:06:06.424] [00:04:05.992,401] <inf> app: RX: node=44720 type=DATA seq=11 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=245992
+[18:06:06.447] [00:04:05.992,431] <inf> app: DELIVER: node=44720 seq=11 src=56992 prev=14402 hops=1 rssi=-23.0 time=245992
+[18:06:06.447] [00:04:06.714,630] <inf> app: RX: node=44720 type=DATA seq=12 src=56992 dst=44720 prev=56992 hop=0 rssi=-45.5 time=246714
+[18:06:06.652] [00:04:06.714,660] <inf> app: DELIVER: node=44720 seq=12 src=56992 prev=56992 hops=0 rssi=-45.5 time=246714
+[18:06:08.430] [00:04:07.998,931] <inf> app: RX: node=44720 type=DATA seq=12 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=247998
+[18:06:08.635] [00:04:07.998,962] <inf> app: DELIVER: node=44720 seq=12 src=56992 prev=14402 hops=1 rssi=-23.0 time=247998
+[18:06:09.652] [00:04:09.221,252] <inf> app: RX: node=44720 type=DATA seq=13 src=56992 dst=44720 prev=56992 hop=0 rssi=-44.5 time=249221
+[18:06:09.676] [00:04:09.221,282] <inf> app: DELIVER: node=44720 seq=13 src=56992 prev=56992 hops=0 rssi=-44.5 time=249221
+[18:06:09.676] [00:04:10.005,462] <inf> app: RX: node=44720 type=DATA seq=13 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=250005
+[18:06:09.881] [00:04:10.005,493] <inf> app: DELIVER: node=44720 seq=13 src=56992 prev=14402 hops=1 rssi=-23.0 time=250005
+[18:06:12.159] [00:04:11.727,874] <inf> app: RX: node=44720 type=DATA seq=14 src=56992 dst=44720 prev=56992 hop=0 rssi=-46.0 time=251727
+[18:06:12.182] [00:04:11.727,905] <inf> app: DELIVER: node=44720 seq=14 src=56992 prev=56992 hops=0 rssi=-46.0 time=251727
+[18:06:12.182] [00:04:12.012,023] <inf> app: RX: node=44720 type=DATA seq=14 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=252011
+[18:06:12.387] [00:04:12.012,023] <inf> app: DELIVER: node=44720 seq=14 src=56992 prev=14402 hops=1 rssi=-23.0 time=252011
+[18:06:14.666] [00:04:14.234,558] <inf> app: RX: node=44720 type=DATA seq=15 src=56992 dst=44720 prev=56992 hop=0 rssi=-44.5 time=254234
+[18:06:14.871] [00:04:14.234,588] <inf> app: DELIVER: node=44720 seq=15 src=56992 prev=56992 hops=0 rssi=-44.5 time=254234
+[18:06:16.450] [00:04:16.019,195] <inf> app: RX: node=44720 type=DATA seq=15 src=56992 dst=44720 prev=14402 hop=1 rssi=-22.5 time=256019
+[18:06:16.473] [00:04:16.019,256] <inf> app: DELIVER: node=44720 seq=15 src=56992 prev=14402 hops=1 rssi=-22.5 time=256019
+[18:06:16.474] [00:04:16.741,210] <inf> app: RX: node=44720 type=DATA seq=16 src=56992 dst=44720 prev=56992 hop=0 rssi=-44.5 time=256741
+[18:06:16.682] [00:04:16.741,210] <inf> app: DELIVER: node=44720 seq=16 src=56992 prev=56992 hops=0 rssi=-44.5 time=256741
+[18:06:18.457] [00:04:18.025,726] <inf> app: RX: node=44720 type=DATA seq=16 src=56992 dst=44720 prev=14402 hop=1 rssi=-22.5 time=258025
+[18:06:18.662] [00:04:18.025,756] <inf> app: DELIVER: node=44720 seq=16 src=56992 prev=14402 hops=1 rssi=-22.5 time=258025
+[18:06:19.679] [00:04:19.247,802] <inf> app: RX: node=44720 type=DATA seq=17 src=56992 dst=44720 prev=56992 hop=0 rssi=-44.5 time=259247
+[18:06:19.702] [00:04:19.247,833] <inf> app: DELIVER: node=44720 seq=17 src=56992 prev=56992 hops=0 rssi=-44.5 time=259247
+[18:06:19.702] [00:04:20.032,257] <inf> app: RX: node=44720 type=DATA seq=17 src=56992 dst=44720 prev=14402 hop=1 rssi=-22.5 time=260032
+[18:06:19.907] [00:04:20.032,287] <inf> app: DELIVER: node=44720 seq=17 src=56992 prev=14402 hops=1 rssi=-22.5 time=260032
+[18:06:22.185] [00:04:21.754,425] <inf> app: RX: node=44720 type=DATA seq=18 src=56992 dst=44720 prev=56992 hop=0 rssi=-44.5 time=261754
+[18:06:22.208] [00:04:21.754,455] <inf> app: DELIVER: node=44720 seq=18 src=56992 prev=56992 hops=0 rssi=-44.5 time=261754
+[18:06:22.208] [00:04:22.038,818] <inf> app: RX: node=44720 type=DATA seq=18 src=56992 dst=44720 prev=14402 hop=1 rssi=-22.5 time=262038
+[18:06:22.413] [00:04:22.038,818] <inf> app: DELIVER: node=44720 seq=18 src=56992 prev=14402 hops=1 rssi=-22.5 time=262038
+[18:06:24.692] [00:04:24.261,138] <inf> app: RX: node=44720 type=DATA seq=19 src=56992 dst=44720 prev=56992 hop=0 rssi=-46.5 time=264261
+[18:06:24.894] [00:04:24.261,169] <inf> app: DELIVER: node=44720 seq=19 src=56992 prev=56992 hops=0 rssi=-46.5 time=264261
+[18:06:26.477] [00:04:26.045,959] <inf> app: RX: node=44720 type=DATA seq=19 src=56992 dst=44720 prev=14402 hop=1 rssi=-22.5 time=266045
+[18:06:26.500] [00:04:26.045,989] <inf> app: DELIVER: node=44720 seq=19 src=56992 prev=14402 hops=1 rssi=-22.5 time=266045
+[18:06:26.500] [00:04:26.767,761] <inf> app: RX: node=44720 type=DATA seq=20 src=56992 dst=44720 prev=56992 hop=0 rssi=-44.5 time=266767
+[18:06:26.706] [00:04:26.767,791] <inf> app: DELIVER: node=44720 seq=20 src=56992 prev=56992 hops=0 rssi=-44.5 time=266767
+[18:06:28.484] [00:04:28.052,520] <inf> app: RX: node=44720 type=DATA seq=20 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=268052
+[18:06:28.689] [00:04:28.052,581] <inf> app: DELIVER: node=44720 seq=20 src=56992 prev=14402 hops=1 rssi=-23.0 time=268052
+[18:06:29.705] [00:04:29.274,353] <inf> app: RX: node=44720 type=DATA seq=21 src=56992 dst=44720 prev=56992 hop=0 rssi=-44.5 time=269274
+[18:06:29.728] [00:04:29.274,383] <inf> app: DELIVER: node=44720 seq=21 src=56992 prev=56992 hops=0 rssi=-44.5 time=269274
+[18:06:29.729] [00:04:30.059,082] <inf> app: RX: node=44720 type=DATA seq=21 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=270059
+[18:06:29.931] [00:04:30.059,082] <inf> app: DELIVER: node=44720 seq=21 src=56992 prev=14402 hops=1 rssi=-23.0 time=270059
+[18:06:32.212] [00:04:31.781,005] <inf> app: RX: node=44720 type=DATA seq=22 src=56992 dst=44720 prev=56992 hop=0 rssi=-44.0 time=271780
+[18:06:32.235] [00:04:31.781,036] <inf> app: DELIVER: node=44720 seq=22 src=56992 prev=56992 hops=0 rssi=-44.0 time=271780
+[18:06:32.235] [00:04:32.065,612] <inf> app: RX: node=44720 type=DATA seq=22 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=272065
+[18:06:32.440] [00:04:32.065,643] <inf> app: DELIVER: node=44720 seq=22 src=56992 prev=14402 hops=1 rssi=-23.0 time=272065
+[18:06:34.719] [00:04:34.287,689] <inf> app: RX: node=44720 type=DATA seq=23 src=56992 dst=44720 prev=56992 hop=0 rssi=-44.0 time=274287
+[18:06:34.924] [00:04:34.287,719] <inf> app: DELIVER: node=44720 seq=23 src=56992 prev=56992 hops=0 rssi=-44.0 time=274287
+[18:06:36.504] [00:04:36.072,753] <inf> app: RX: node=44720 type=DATA seq=23 src=56992 dst=44720 prev=14402 hop=1 rssi=-22.5 time=276072
+[18:06:36.527] [00:04:36.072,784] <inf> app: DELIVER: node=44720 seq=23 src=56992 prev=14402 hops=1 rssi=-22.5 time=276072
+[18:06:36.527] [00:04:36.794,342] <inf> app: RX: node=44720 type=DATA seq=24 src=56992 dst=44720 prev=56992 hop=0 rssi=-45.5 time=276794
+[18:06:36.732] [00:04:36.794,342] <inf> app: DELIVER: node=44720 seq=24 src=56992 prev=56992 hops=0 rssi=-45.5 time=276794
+[18:06:38.510] [00:04:38.079,345] <inf> app: RX: node=44720 type=DATA seq=24 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=278079
+[18:06:38.715] [00:04:38.079,376] <inf> app: DELIVER: node=44720 seq=24 src=56992 prev=14402 hops=1 rssi=-23.0 time=278079
+[18:06:39.732] [00:04:39.300,933] <inf> app: RX: node=44720 type=DATA seq=25 src=56992 dst=44720 prev=56992 hop=0 rssi=-45.0 time=279300
+[18:06:39.755] [00:04:39.300,964] <inf> app: DELIVER: node=44720 seq=25 src=56992 prev=56992 hops=0 rssi=-45.0 time=279300
+[18:06:39.755] [00:04:40.085,876] <inf> app: RX: node=44720 type=DATA seq=25 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=280085
+[18:06:39.957] [00:04:40.085,876] <inf> app: DELIVER: node=44720 seq=25 src=56992 prev=14402 hops=1 rssi=-23.0 time=280085
+[18:06:42.238] [00:04:41.807,556] <inf> app: RX: node=44720 type=DATA seq=26 src=56992 dst=44720 prev=56992 hop=0 rssi=-46.0 time=281807
+[18:06:42.261] [00:04:41.807,586] <inf> app: DELIVER: node=44720 seq=26 src=56992 prev=56992 hops=0 rssi=-46.0 time=281807
+[18:06:42.261] [00:04:42.092,407] <inf> app: RX: node=44720 type=DATA seq=26 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=282092
+[18:06:42.466] [00:04:42.092,437] <inf> app: DELIVER: node=44720 seq=26 src=56992 prev=14402 hops=1 rssi=-23.0 time=282092
+[18:06:44.745] [00:04:44.314,239] <inf> app: RX: node=44720 type=DATA seq=27 src=56992 dst=44720 prev=56992 hop=0 rssi=-44.0 time=284314
+[18:06:44.950] [00:04:44.314,300] <inf> app: DELIVER: node=44720 seq=27 src=56992 prev=56992 hops=0 rssi=-44.0 time=284314
+[18:06:46.530] [00:04:46.099,517] <inf> app: RX: node=44720 type=DATA seq=27 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=286099
+[18:06:46.553] [00:04:46.099,578] <inf> app: DELIVER: node=44720 seq=27 src=56992 prev=14402 hops=1 rssi=-23.0 time=286099
+[18:06:46.553] [00:04:46.820,892] <inf> app: RX: node=44720 type=DATA seq=28 src=56992 dst=44720 prev=56992 hop=0 rssi=-44.5 time=286820
+[18:06:46.759] [00:04:46.820,892] <inf> app: DELIVER: node=44720 seq=28 src=56992 prev=56992 hops=0 rssi=-44.5 time=286820
+[18:06:48.537] [00:04:48.106,079] <inf> app: RX: node=44720 type=DATA seq=28 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=288106
+[18:06:48.740] [00:04:48.106,109] <inf> app: DELIVER: node=44720 seq=28 src=56992 prev=14402 hops=1 rssi=-23.0 time=288106
+[18:06:49.758] [00:04:49.327,545] <inf> app: RX: node=44720 type=DATA seq=29 src=56992 dst=44720 prev=56992 hop=0 rssi=-45.5 time=289327
+[18:06:49.776] [00:04:49.327,575] <inf> app: DELIVER: node=44720 seq=29 src=56992 prev=56992 hops=0 rssi=-45.5 time=289327
+[18:06:49.776] [00:04:50.112,609] <inf> app: RX: node=44720 type=DATA seq=29 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=290112
+[18:06:49.981] [00:04:50.112,640] <inf> app: DELIVER: node=44720 seq=29 src=56992 prev=14402 hops=1 rssi=-23.0 time=290112
+[18:06:52.265] [00:04:51.834,167] <inf> app: RX: node=44720 type=DATA seq=30 src=56992 dst=44720 prev=56992 hop=0 rssi=-44.5 time=291834
+[18:06:52.288] [00:04:51.834,197] <inf> app: DELIVER: node=44720 seq=30 src=56992 prev=56992 hops=0 rssi=-44.5 time=291834
+[18:06:52.288] [00:04:52.119,171] <inf> app: RX: node=44720 type=DATA seq=30 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=292119
+[18:06:52.493] [00:04:52.119,171] <inf> app: DELIVER: node=44720 seq=30 src=56992 prev=14402 hops=1 rssi=-23.0 time=292119
+[18:06:54.771] [00:04:54.340,789] <inf> app: RX: node=44720 type=DATA seq=31 src=56992 dst=44720 prev=56992 hop=0 rssi=-44.0 time=294340
+[18:06:54.974] [00:04:54.340,850] <inf> app: DELIVER: node=44720 seq=31 src=56992 prev=56992 hops=0 rssi=-44.0 time=294340
+[18:06:56.557] [00:04:56.126,312] <inf> app: RX: node=44720 type=DATA seq=31 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=296126
+[18:06:56.580] [00:04:56.126,342] <inf> app: DELIVER: node=44720 seq=31 src=56992 prev=14402 hops=1 rssi=-23.0 time=296126
+[18:06:56.580] [00:04:56.847,442] <inf> app: RX: node=44720 type=DATA seq=32 src=56992 dst=44720 prev=56992 hop=0 rssi=-44.5 time=296847
+[18:06:56.782] [00:04:56.847,473] <inf> app: DELIVER: node=44720 seq=32 src=56992 prev=56992 hops=0 rssi=-44.5 time=296847
+[18:06:58.563] [00:04:58.132,873] <inf> app: RX: node=44720 type=DATA seq=32 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=298132
+[18:06:58.765] [00:04:58.132,904] <inf> app: DELIVER: node=44720 seq=32 src=56992 prev=14402 hops=1 rssi=-23.0 time=298132
+[18:06:59.784] [00:04:59.354,125] <inf> app: RX: node=44720 type=DATA seq=33 src=56992 dst=44720 prev=56992 hop=0 rssi=-45.0 time=299354
+[18:06:59.808] [00:04:59.354,156] <inf> app: DELIVER: node=44720 seq=33 src=56992 prev=56992 hops=0 rssi=-45.0 time=299354
+[18:06:59.809] [00:05:00.139,404] <inf> app: RX: node=44720 type=DATA seq=33 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=300139
+[18:07:00.014] [00:05:00.139,434] <inf> app: DELIVER: node=44720 seq=33 src=56992 prev=14402 hops=1 rssi=-23.0 time=300139
+[18:07:02.291] [00:05:01.860,717] <inf> app: RX: node=44720 type=DATA seq=34 src=56992 dst=44720 prev=56992 hop=0 rssi=-45.5 time=301860
+[18:07:02.314] [00:05:01.860,748] <inf> app: DELIVER: node=44720 seq=34 src=56992 prev=56992 hops=0 rssi=-45.5 time=301860
+[18:07:02.314] [00:05:02.145,965] <inf> app: RX: node=44720 type=DATA seq=34 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=302145
+[18:07:02.519] [00:05:02.145,965] <inf> app: DELIVER: node=44720 seq=34 src=56992 prev=14402 hops=1 rssi=-23.0 time=302145
+[18:07:04.798] [00:05:04.367,370] <inf> app: RX: node=44720 type=DATA seq=35 src=56992 dst=44720 prev=56992 hop=0 rssi=-44.5 time=304367
+[18:07:04.999] [00:05:04.367,401] <inf> app: DELIVER: node=44720 seq=35 src=56992 prev=56992 hops=0 rssi=-44.5 time=304367
+[18:07:06.584] [00:05:06.153,137] <inf> app: RX: node=44720 type=DATA seq=35 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=306153
+[18:07:06.607] [00:05:06.153,167] <inf> app: DELIVER: node=44720 seq=35 src=56992 prev=14402 hops=1 rssi=-23.0 time=306153
+[18:07:06.607] [00:05:06.873,992] <inf> app: RX: node=44720 type=DATA seq=36 src=56992 dst=44720 prev=56992 hop=0 rssi=-44.5 time=306873
+[18:07:06.812] [00:05:06.874,023] <inf> app: DELIVER: node=44720 seq=36 src=56992 prev=56992 hops=0 rssi=-44.5 time=306873
+[18:07:08.590] [00:05:08.159,667] <inf> app: RX: node=44720 type=DATA seq=36 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=308159
+[18:07:08.795] [00:05:08.159,698] <inf> app: DELIVER: node=44720 seq=36 src=56992 prev=14402 hops=1 rssi=-23.0 time=308159
+[18:07:09.807] [00:05:09.380,676] <inf> app: RX: node=44720 type=DATA seq=37 src=56992 dst=44720 prev=56992 hop=0 rssi=-45.5 time=309380
+[18:07:09.828] [00:05:09.380,706] <inf> app: DELIVER: node=44720 seq=37 src=56992 prev=56992 hops=0 rssi=-45.5 time=309380
+[18:07:09.829] [00:05:10.166,198] <inf> app: RX: node=44720 type=DATA seq=37 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=310166
+[18:07:10.032] [00:05:10.166,229] <inf> app: DELIVER: node=44720 seq=37 src=56992 prev=14402 hops=1 rssi=-23.0 time=310166
+[18:07:12.317] [00:05:11.887,268] <inf> app: RX: node=44720 type=DATA seq=38 src=56992 dst=44720 prev=56992 hop=0 rssi=-44.5 time=311887
+[18:07:12.340] [00:05:11.887,329] <inf> app: DELIVER: node=44720 seq=38 src=56992 prev=56992 hops=0 rssi=-44.5 time=311887
+[18:07:12.341] [00:05:12.172,729] <inf> app: RX: node=44720 type=DATA seq=38 src=56992 dst=44720 prev=14402 hop=1 rssi=-22.5 time=312172
+[18:07:12.546] [00:05:12.172,760] <inf> app: DELIVER: node=44720 seq=38 src=56992 prev=14402 hops=1 rssi=-22.5 time=312172
+[18:07:14.824] [00:05:14.393,981] <inf> app: RX: node=44720 type=DATA seq=39 src=56992 dst=44720 prev=56992 hop=0 rssi=-44.5 time=314393
+[18:07:15.026] [00:05:14.394,012] <inf> app: DELIVER: node=44720 seq=39 src=56992 prev=56992 hops=0 rssi=-44.5 time=314393
+[18:07:16.610] [00:05:16.179,901] <inf> app: RX: node=44720 type=DATA seq=39 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=316179
+[18:07:16.633] [00:05:16.179,962] <inf> app: DELIVER: node=44720 seq=39 src=56992 prev=14402 hops=1 rssi=-23.0 time=316179
+[18:07:16.633] [00:05:16.900,604] <inf> app: RX: node=44720 type=DATA seq=40 src=56992 dst=44720 prev=56992 hop=0 rssi=-44.5 time=316900
+[18:07:16.839] [00:05:16.900,634] <inf> app: DELIVER: node=44720 seq=40 src=56992 prev=56992 hops=0 rssi=-44.5 time=316900
+[18:07:18.616] [00:05:18.186,431] <inf> app: RX: node=44720 type=DATA seq=40 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=318186
+[18:07:18.822] [00:05:18.186,492] <inf> app: DELIVER: node=44720 seq=40 src=56992 prev=14402 hops=1 rssi=-23.0 time=318186
+[18:07:19.837] [00:05:19.407,196] <inf> app: RX: node=44720 type=DATA seq=41 src=56992 dst=44720 prev=56992 hop=0 rssi=-44.5 time=319407
+[18:07:19.860] [00:05:19.407,226] <inf> app: DELIVER: node=44720 seq=41 src=56992 prev=56992 hops=0 rssi=-44.5 time=319407
+[18:07:19.860] [00:05:20.192,993] <inf> app: RX: node=44720 type=DATA seq=41 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=320192
+[18:07:20.063] [00:05:20.192,993] <inf> app: DELIVER: node=44720 seq=41 src=56992 prev=14402 hops=1 rssi=-23.0 time=320192
+[18:07:22.344] [00:05:21.913,848] <inf> app: RX: node=44720 type=DATA seq=42 src=56992 dst=44720 prev=56992 hop=0 rssi=-44.5 time=321913
+[18:07:22.367] [00:05:21.913,879] <inf> app: DELIVER: node=44720 seq=42 src=56992 prev=56992 hops=0 rssi=-44.5 time=321913
+[18:07:22.367] [00:05:22.199,523] <inf> app: RX: node=44720 type=DATA seq=42 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=322199
+[18:07:22.569] [00:05:22.199,554] <inf> app: DELIVER: node=44720 seq=42 src=56992 prev=14402 hops=1 rssi=-23.0 time=322199
+[18:07:24.850] [00:05:24.420,532] <inf> app: RX: node=44720 type=DATA seq=43 src=56992 dst=44720 prev=56992 hop=0 rssi=-45.5 time=324420
+[18:07:25.056] [00:05:24.420,562] <inf> app: DELIVER: node=44720 seq=43 src=56992 prev=56992 hops=0 rssi=-45.5 time=324420
+[18:07:26.637] [00:05:26.206,665] <inf> app: RX: node=44720 type=DATA seq=43 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=326206
+[18:07:26.660] [00:05:26.206,695] <inf> app: DELIVER: node=44720 seq=43 src=56992 prev=14402 hops=1 rssi=-23.0 time=326206
+[18:07:26.660] [00:05:26.927,124] <inf> app: RX: node=44720 type=DATA seq=44 src=56992 dst=44720 prev=56992 hop=0 rssi=-44.5 time=326927
+[18:07:26.864] [00:05:26.927,154] <inf> app: DELIVER: node=44720 seq=44 src=56992 prev=56992 hops=0 rssi=-44.5 time=326927
+[18:07:28.643] [00:05:28.213,226] <inf> app: RX: node=44720 type=DATA seq=44 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=328213
+[18:07:28.848] [00:05:28.213,256] <inf> app: DELIVER: node=44720 seq=44 src=56992 prev=14402 hops=1 rssi=-23.0 time=328213
+[18:07:29.864] [00:05:29.433,807] <inf> app: RX: node=44720 type=DATA seq=45 src=56992 dst=44720 prev=56992 hop=0 rssi=-45.0 time=329433
+[18:07:29.881] [00:05:29.433,837] <inf> app: DELIVER: node=44720 seq=45 src=56992 prev=56992 hops=0 rssi=-45.0 time=329433
+[18:07:29.881] [00:05:30.219,757] <inf> app: RX: node=44720 type=DATA seq=45 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.5 time=330219
+[18:07:30.085] [00:05:30.219,787] <inf> app: DELIVER: node=44720 seq=45 src=56992 prev=14402 hops=1 rssi=-23.5 time=330219
+[18:07:32.371] [00:05:31.940,399] <inf> app: RX: node=44720 type=DATA seq=46 src=56992 dst=44720 prev=56992 hop=0 rssi=-45.0 time=331940
+[18:07:32.393] [00:05:31.940,460] <inf> app: DELIVER: node=44720 seq=46 src=56992 prev=56992 hops=0 rssi=-45.0 time=331940
+[18:07:32.394] [00:05:32.226,318] <inf> app: RX: node=44720 type=DATA seq=46 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=332226
+[18:07:32.597] [00:05:32.226,318] <inf> app: DELIVER: node=44720 seq=46 src=56992 prev=14402 hops=1 rssi=-23.0 time=332226
+[18:07:34.877] [00:05:34.447,052] <inf> app: RX: node=44720 type=DATA seq=47 src=56992 dst=44720 prev=56992 hop=0 rssi=-45.0 time=334447
+[18:07:35.082] [00:05:34.447,082] <inf> app: DELIVER: node=44720 seq=47 src=56992 prev=56992 hops=0 rssi=-45.0 time=334447
+[18:07:36.663] [00:05:36.233,489] <inf> app: RX: node=44720 type=DATA seq=47 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=336233
+[18:07:36.686] [00:05:36.233,520] <inf> app: DELIVER: node=44720 seq=47 src=56992 prev=14402 hops=1 rssi=-23.0 time=336233
+[18:07:36.687] [00:05:36.953,674] <inf> app: RX: node=44720 type=DATA seq=48 src=56992 dst=44720 prev=56992 hop=0 rssi=-45.0 time=336953
+[18:07:36.892] [00:05:36.953,704] <inf> app: DELIVER: node=44720 seq=48 src=56992 prev=56992 hops=0 rssi=-45.0 time=336953
+[18:07:38.670] [00:05:38.239,990] <inf> app: RX: node=44720 type=DATA seq=48 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.5 time=338239
+[18:07:38.875] [00:05:38.240,051] <inf> app: DELIVER: node=44720 seq=48 src=56992 prev=14402 hops=1 rssi=-23.5 time=338239
+[18:07:39.890] [00:05:39.460,357] <inf> app: RX: node=44720 type=DATA seq=49 src=56992 dst=44720 prev=56992 hop=0 rssi=-44.5 time=339460
+[18:07:39.907] [00:05:39.460,388] <inf> app: DELIVER: node=44720 seq=49 src=56992 prev=56992 hops=0 rssi=-44.5 time=339460
+[18:07:39.908] [00:05:40.246,551] <inf> app: RX: node=44720 type=DATA seq=49 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=340246
+[18:07:40.110] [00:05:40.246,551] <inf> app: DELIVER: node=44720 seq=49 src=56992 prev=14402 hops=1 rssi=-23.0 time=340246
+[18:07:42.397] [00:05:41.966,979] <inf> app: RX: node=44720 type=DATA seq=50 src=56992 dst=44720 prev=56992 hop=0 rssi=-45.0 time=341966
+[18:07:42.420] [00:05:41.967,010] <inf> app: DELIVER: node=44720 seq=50 src=56992 prev=56992 hops=0 rssi=-45.0 time=341966
+[18:07:42.420] [00:05:42.253,082] <inf> app: RX: node=44720 type=DATA seq=50 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=342253
+[18:07:42.623] [00:05:42.253,112] <inf> app: DELIVER: node=44720 seq=50 src=56992 prev=14402 hops=1 rssi=-23.0 time=342253
+[18:07:44.903] [00:05:44.473,602] <inf> app: RX: node=44720 type=DATA seq=51 src=56992 dst=44720 prev=56992 hop=0 rssi=-44.5 time=344473
+[18:07:45.108] [00:05:44.473,632] <inf> app: DELIVER: node=44720 seq=51 src=56992 prev=56992 hops=0 rssi=-44.5 time=344473
+[18:07:46.690] [00:05:46.260,284] <inf> app: RX: node=44720 type=DATA seq=51 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.5 time=346260
+[18:07:46.713] [00:05:46.260,314] <inf> app: DELIVER: node=44720 seq=51 src=56992 prev=14402 hops=1 rssi=-23.5 time=346260
+[18:07:46.713] [00:05:46.980,255] <inf> app: RX: node=44720 type=DATA seq=52 src=56992 dst=44720 prev=56992 hop=0 rssi=-45.0 time=346980
+[18:07:46.916] [00:05:46.980,255] <inf> app: DELIVER: node=44720 seq=52 src=56992 prev=56992 hops=0 rssi=-45.0 time=346980
+[18:07:48.696] [00:05:48.266,784] <inf> app: RX: node=44720 type=DATA seq=52 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=348266
+[18:07:48.901] [00:05:48.266,815] <inf> app: DELIVER: node=44720 seq=52 src=56992 prev=14402 hops=1 rssi=-23.0 time=348266
+[18:07:49.916] [00:05:49.486,907] <inf> app: RX: node=44720 type=DATA seq=53 src=56992 dst=44720 prev=56992 hop=0 rssi=-45.0 time=349486
+[18:07:49.940] [00:05:49.486,938] <inf> app: DELIVER: node=44720 seq=53 src=56992 prev=56992 hops=0 rssi=-45.0 time=349486
+[18:07:49.940] [00:05:50.273,345] <inf> app: RX: node=44720 type=DATA seq=53 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=350273
+[18:07:50.140] [00:05:50.273,345] <inf> app: DELIVER: node=44720 seq=53 src=56992 prev=14402 hops=1 rssi=-23.0 time=350273
+[18:07:52.423] [00:05:51.993,530] <inf> app: RX: node=44720 type=DATA seq=54 src=56992 dst=44720 prev=56992 hop=0 rssi=-44.5 time=351993
+[18:07:52.446] [00:05:51.993,560] <inf> app: DELIVER: node=44720 seq=54 src=56992 prev=56992 hops=0 rssi=-44.5 time=351993
+[18:07:52.446] [00:05:52.279,876] <inf> app: RX: node=44720 type=DATA seq=54 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=352279
+[18:07:52.651] [00:05:52.279,907] <inf> app: DELIVER: node=44720 seq=54 src=56992 prev=14402 hops=1 rssi=-23.0 time=352279
+[18:07:54.930] [00:05:54.500,152] <inf> app: RX: node=44720 type=DATA seq=55 src=56992 dst=44720 prev=56992 hop=0 rssi=-44.5 time=354500
+[18:07:55.135] [00:05:54.500,183] <inf> app: DELIVER: node=44720 seq=55 src=56992 prev=56992 hops=0 rssi=-44.5 time=354500
+[18:07:56.716] [00:05:56.287,017] <inf> app: RX: node=44720 type=DATA seq=55 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=356286
+[18:07:56.740] [00:05:56.287,048] <inf> app: DELIVER: node=44720 seq=55 src=56992 prev=14402 hops=1 rssi=-23.0 time=356286
+[18:07:56.740] [00:05:57.006,835] <inf> app: RX: node=44720 type=DATA seq=56 src=56992 dst=44720 prev=56992 hop=0 rssi=-44.5 time=357006
+[18:07:56.945] [00:05:57.006,866] <inf> app: DELIVER: node=44720 seq=56 src=56992 prev=56992 hops=0 rssi=-44.5 time=357006
+[18:07:58.723] [00:05:58.293,579] <inf> app: RX: node=44720 type=DATA seq=56 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=358293
+[18:07:58.928] [00:05:58.293,609] <inf> app: DELIVER: node=44720 seq=56 src=56992 prev=14402 hops=1 rssi=-23.0 time=358293
+[18:07:59.943] [00:05:59.513,427] <inf> app: RX: node=44720 type=DATA seq=57 src=56992 dst=44720 prev=56992 hop=0 rssi=-45.0 time=359513
+[18:07:59.966] [00:05:59.513,488] <inf> app: DELIVER: node=44720 seq=57 src=56992 prev=56992 hops=0 rssi=-45.0 time=359513
+[18:07:59.966] [00:06:00.300,109] <inf> app: RX: node=44720 type=DATA seq=57 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=360300
+[18:08:00.169] [00:06:00.300,140] <inf> app: DELIVER: node=44720 seq=57 src=56992 prev=14402 hops=1 rssi=-23.0 time=360300
+[18:08:02.450] [00:06:02.020,080] <inf> app: RX: node=44720 type=DATA seq=58 src=56992 dst=44720 prev=56992 hop=0 rssi=-45.0 time=362020
+[18:08:02.473] [00:06:02.020,111] <inf> app: DELIVER: node=44720 seq=58 src=56992 prev=56992 hops=0 rssi=-45.0 time=362020
+[18:08:02.473] [00:06:02.306,671] <inf> app: RX: node=44720 type=DATA seq=58 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=362306
+[18:08:02.674] [00:06:02.306,701] <inf> app: DELIVER: node=44720 seq=58 src=56992 prev=14402 hops=1 rssi=-23.0 time=362306
+[18:08:04.956] [00:06:04.526,763] <inf> app: RX: node=44720 type=DATA seq=59 src=56992 dst=44720 prev=56992 hop=0 rssi=-45.5 time=364526
+[18:08:05.162] [00:06:04.526,794] <inf> app: DELIVER: node=44720 seq=59 src=56992 prev=56992 hops=0 rssi=-45.5 time=364526
+[18:08:06.743] [00:06:06.313,781] <inf> app: RX: node=44720 type=DATA seq=59 src=56992 dst=44720 prev=14402 hop=1 rssi=-22.5 time=366313
+[18:08:06.766] [00:06:06.313,842] <inf> app: DELIVER: node=44720 seq=59 src=56992 prev=14402 hops=1 rssi=-22.5 time=366313
+[18:08:06.766] [00:06:07.033,416] <inf> app: RX: node=44720 type=DATA seq=60 src=56992 dst=44720 prev=56992 hop=0 rssi=-44.5 time=367033
+[18:08:06.972] [00:06:07.033,416] <inf> app: DELIVER: node=44720 seq=60 src=56992 prev=56992 hops=0 rssi=-44.5 time=367033
+[18:08:08.750] [00:06:08.320,404] <inf> app: RX: node=44720 type=DATA seq=60 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=368320
+[18:08:08.955] [00:06:08.320,434] <inf> app: DELIVER: node=44720 seq=60 src=56992 prev=14402 hops=1 rssi=-23.0 time=368320
+[18:08:09.969] [00:06:09.540,008] <inf> app: RX: node=44720 type=DATA seq=61 src=56992 dst=44720 prev=56992 hop=0 rssi=-45.0 time=369539
+[18:08:09.992] [00:06:09.540,039] <inf> app: DELIVER: node=44720 seq=61 src=56992 prev=56992 hops=0 rssi=-45.0 time=369539
+[18:08:09.993] [00:06:10.326,934] <inf> app: RX: node=44720 type=DATA seq=61 src=56992 dst=44720 prev=14402 hop=1 rssi=-22.5 time=370326
+[18:08:10.198] [00:06:10.326,934] <inf> app: DELIVER: node=44720 seq=61 src=56992 prev=14402 hops=1 rssi=-22.5 time=370326
+[18:08:12.476] [00:06:12.046,630] <inf> app: RX: node=44720 type=DATA seq=62 src=56992 dst=44720 prev=56992 hop=0 rssi=-45.0 time=372046
+[18:08:12.499] [00:06:12.046,661] <inf> app: DELIVER: node=44720 seq=62 src=56992 prev=56992 hops=0 rssi=-45.0 time=372046
+[18:08:12.499] [00:06:12.333,465] <inf> app: RX: node=44720 type=DATA seq=62 src=56992 dst=44720 prev=14402 hop=1 rssi=-22.5 time=372333
+[18:08:12.704] [00:06:12.333,496] <inf> app: DELIVER: node=44720 seq=62 src=56992 prev=14402 hops=1 rssi=-22.5 time=372333
+[18:08:14.983] [00:06:14.553,314] <inf> app: RX: node=44720 type=DATA seq=63 src=56992 dst=44720 prev=56992 hop=0 rssi=-44.5 time=374553
+[18:08:15.188] [00:06:14.553,344] <inf> app: DELIVER: node=44720 seq=63 src=56992 prev=56992 hops=0 rssi=-44.5 time=374553
+[18:08:16.770] [00:06:16.340,576] <inf> app: RX: node=44720 type=DATA seq=63 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=376340
+[18:08:16.793] [00:06:16.340,606] <inf> app: DELIVER: node=44720 seq=63 src=56992 prev=14402 hops=1 rssi=-23.0 time=376340
+[18:08:16.793] [00:06:17.059,967] <inf> app: RX: node=44720 type=DATA seq=64 src=56992 dst=44720 prev=56992 hop=0 rssi=-45.0 time=377059
+[18:08:16.998] [00:06:17.059,967] <inf> app: DELIVER: node=44720 seq=64 src=56992 prev=56992 hops=0 rssi=-45.0 time=377059
+[18:08:18.776] [00:06:18.347,137] <inf> app: RX: node=44720 type=DATA seq=64 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.5 time=378347
+[18:08:18.981] [00:06:18.347,167] <inf> app: DELIVER: node=44720 seq=64 src=56992 prev=14402 hops=1 rssi=-23.5 time=378347
+[18:08:19.996] [00:06:19.566,558] <inf> app: RX: node=44720 type=DATA seq=65 src=56992 dst=44720 prev=56992 hop=0 rssi=-44.5 time=379566
+[18:08:20.019] [00:06:19.566,589] <inf> app: DELIVER: node=44720 seq=65 src=56992 prev=56992 hops=0 rssi=-44.5 time=379566
+[18:08:20.019] [00:06:20.353,668] <inf> app: RX: node=44720 type=DATA seq=65 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=380353
+[18:08:20.224] [00:06:20.353,698] <inf> app: DELIVER: node=44720 seq=65 src=56992 prev=14402 hops=1 rssi=-23.0 time=380353
+[18:08:22.502] [00:06:22.073,181] <inf> app: RX: node=44720 type=DATA seq=66 src=56992 dst=44720 prev=56992 hop=0 rssi=-45.0 time=382073
+[18:08:22.525] [00:06:22.073,211] <inf> app: DELIVER: node=44720 seq=66 src=56992 prev=56992 hops=0 rssi=-45.0 time=382073
+[18:08:22.526] [00:06:22.360,198] <inf> app: RX: node=44720 type=DATA seq=66 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=382360
+[18:08:22.731] [00:06:22.360,229] <inf> app: DELIVER: node=44720 seq=66 src=56992 prev=14402 hops=1 rssi=-23.0 time=382360
+[18:08:25.009] [00:06:24.579,864] <inf> app: RX: node=44720 type=DATA seq=67 src=56992 dst=44720 prev=56992 hop=0 rssi=-45.0 time=384579
+[18:08:25.213] [00:06:24.579,925] <inf> app: DELIVER: node=44720 seq=67 src=56992 prev=56992 hops=0 rssi=-45.0 time=384579
+[18:08:26.796] [00:06:26.367,370] <inf> app: RX: node=44720 type=DATA seq=67 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=386367
+[18:08:26.819] [00:06:26.367,401] <inf> app: DELIVER: node=44720 seq=67 src=56992 prev=14402 hops=1 rssi=-23.0 time=386367
+[18:08:26.820] [00:06:27.086,486] <inf> app: RX: node=44720 type=DATA seq=68 src=56992 dst=44720 prev=56992 hop=0 rssi=-45.0 time=387086
+[18:08:27.021] [00:06:27.086,517] <inf> app: DELIVER: node=44720 seq=68 src=56992 prev=56992 hops=0 rssi=-45.0 time=387086
+[18:08:28.803] [00:06:28.373,901] <inf> app: RX: node=44720 type=DATA seq=68 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=388373
+[18:08:29.008] [00:06:28.373,931] <inf> app: DELIVER: node=44720 seq=68 src=56992 prev=14402 hops=1 rssi=-23.0 time=388373
+[18:08:30.022] [00:06:29.593,109] <inf> app: RX: node=44720 type=DATA seq=69 src=56992 dst=44720 prev=56992 hop=0 rssi=-45.0 time=389593
+[18:08:30.045] [00:06:29.593,139] <inf> app: DELIVER: node=44720 seq=69 src=56992 prev=56992 hops=0 rssi=-45.0 time=389593
+[18:08:30.045] [00:06:30.380,462] <inf> app: RX: node=44720 type=DATA seq=69 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=390380
+[18:08:30.248] [00:06:30.380,462] <inf> app: DELIVER: node=44720 seq=69 src=56992 prev=14402 hops=1 rssi=-23.0 time=390380
+[18:08:32.529] [00:06:32.099,731] <inf> app: RX: node=44720 type=DATA seq=70 src=56992 dst=44720 prev=56992 hop=0 rssi=-44.5 time=392099
+[18:08:32.552] [00:06:32.099,792] <inf> app: DELIVER: node=44720 seq=70 src=56992 prev=56992 hops=0 rssi=-44.5 time=392099
+[18:08:32.552] [00:06:32.386,993] <inf> app: RX: node=44720 type=DATA seq=70 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=392386
+[18:08:32.757] [00:06:32.387,023] <inf> app: DELIVER: node=44720 seq=70 src=56992 prev=14402 hops=1 rssi=-23.0 time=392386
+[18:08:35.035] [00:06:34.606,414] <inf> app: RX: node=44720 type=DATA seq=71 src=56992 dst=44720 prev=56992 hop=0 rssi=-44.5 time=394606
+[18:08:35.241] [00:06:34.606,445] <inf> app: DELIVER: node=44720 seq=71 src=56992 prev=56992 hops=0 rssi=-44.5 time=394606
+[18:08:36.823] [00:06:36.394,165] <inf> app: RX: node=44720 type=DATA seq=71 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=396394
+[18:08:36.846] [00:06:36.394,195] <inf> app: DELIVER: node=44720 seq=71 src=56992 prev=14402 hops=1 rssi=-23.0 time=396394
+[18:08:36.848] [00:06:37.113,037] <inf> app: RX: node=44720 type=DATA seq=72 src=56992 dst=44720 prev=56992 hop=0 rssi=-44.0 time=397113
+[18:08:37.051] [00:06:37.113,067] <inf> app: DELIVER: node=44720 seq=72 src=56992 prev=56992 hops=0 rssi=-44.0 time=397113
+[18:08:38.829] [00:06:38.400,695] <inf> app: RX: node=44720 type=DATA seq=72 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=398400
+[18:08:39.031] [00:06:38.400,726] <inf> app: DELIVER: node=44720 seq=72 src=56992 prev=14402 hops=1 rssi=-23.0 time=398400
+[18:08:40.048] [00:06:39.619,659] <inf> app: RX: node=44720 type=DATA seq=73 src=56992 dst=44720 prev=56992 hop=0 rssi=-45.0 time=399619
+[18:08:40.066] [00:06:39.619,689] <inf> app: DELIVER: node=44720 seq=73 src=56992 prev=56992 hops=0 rssi=-45.0 time=399619
+[18:08:40.066] [00:06:40.407,226] <inf> app: RX: node=44720 type=DATA seq=73 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=400407
+[18:08:40.269] [00:06:40.407,257] <inf> app: DELIVER: node=44720 seq=73 src=56992 prev=14402 hops=1 rssi=-23.0 time=400407
+[18:08:42.555] [00:06:42.126,342] <inf> app: RX: node=44720 type=DATA seq=74 src=56992 dst=44720 prev=56992 hop=0 rssi=-45.5 time=402126
+[18:08:42.578] [00:06:42.126,373] <inf> app: DELIVER: node=44720 seq=74 src=56992 prev=56992 hops=0 rssi=-45.5 time=402126
+[18:08:42.578] [00:06:42.413,787] <inf> app: RX: node=44720 type=DATA seq=74 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=402413
+[18:08:42.783] [00:06:42.413,787] <inf> app: DELIVER: node=44720 seq=74 src=56992 prev=14402 hops=1 rssi=-23.0 time=402413
+[18:08:45.062] [00:06:44.632,965] <inf> app: RX: node=44720 type=DATA seq=75 src=56992 dst=44720 prev=56992 hop=0 rssi=-45.5 time=404632
+[18:08:45.265] [00:06:44.632,995] <inf> app: DELIVER: node=44720 seq=75 src=56992 prev=56992 hops=0 rssi=-45.5 time=404632
+[18:08:46.850] [00:06:46.420,959] <inf> app: RX: node=44720 type=DATA seq=75 src=56992 dst=44720 prev=14402 hop=1 rssi=-22.5 time=406420
+[18:08:46.873] [00:06:46.420,989] <inf> app: DELIVER: node=44720 seq=75 src=56992 prev=14402 hops=1 rssi=-22.5 time=406420
+[18:08:46.873] [00:06:47.139,587] <inf> app: RX: node=44720 type=DATA seq=76 src=56992 dst=44720 prev=56992 hop=0 rssi=-45.5 time=407139
+[18:08:47.078] [00:06:47.139,617] <inf> app: DELIVER: node=44720 seq=76 src=56992 prev=56992 hops=0 rssi=-45.5 time=407139
+[18:08:48.856] [00:06:48.427,459] <inf> app: RX: node=44720 type=DATA seq=76 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=408427
+[18:08:49.058] [00:06:48.427,520] <inf> app: DELIVER: node=44720 seq=76 src=56992 prev=14402 hops=1 rssi=-23.0 time=408427
+[18:08:50.075] [00:06:49.646,270] <inf> app: RX: node=44720 type=DATA seq=77 src=56992 dst=44720 prev=56992 hop=0 rssi=-45.0 time=409646
+[18:08:50.098] [00:06:49.646,301] <inf> app: DELIVER: node=44720 seq=77 src=56992 prev=56992 hops=0 rssi=-45.0 time=409646
+[18:08:50.098] [00:06:50.434,020] <inf> app: RX: node=44720 type=DATA seq=77 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=410433
+[18:08:50.303] [00:06:50.434,020] <inf> app: DELIVER: node=44720 seq=77 src=56992 prev=14402 hops=1 rssi=-23.0 time=410433
+[18:08:52.582] [00:06:52.152,862] <inf> app: RX: node=44720 type=DATA seq=78 src=56992 dst=44720 prev=56992 hop=0 rssi=-44.5 time=412152
+[18:08:52.604] [00:06:52.152,923] <inf> app: DELIVER: node=44720 seq=78 src=56992 prev=56992 hops=0 rssi=-44.5 time=412152
+[18:08:52.604] [00:06:52.440,551] <inf> app: RX: node=44720 type=DATA seq=78 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=412440
+[18:08:52.810] [00:06:52.440,582] <inf> app: DELIVER: node=44720 seq=78 src=56992 prev=14402 hops=1 rssi=-23.0 time=412440
+[18:08:55.088] [00:06:54.659,515] <inf> app: RX: node=44720 type=DATA seq=79 src=56992 dst=44720 prev=56992 hop=0 rssi=-45.5 time=414659
+[18:08:55.290] [00:06:54.659,545] <inf> app: DELIVER: node=44720 seq=79 src=56992 prev=56992 hops=0 rssi=-45.5 time=414659
+[18:08:56.876] [00:06:56.447,723] <inf> app: RX: node=44720 type=DATA seq=79 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=416447
+[18:08:56.899] [00:06:56.447,753] <inf> app: DELIVER: node=44720 seq=79 src=56992 prev=14402 hops=1 rssi=-23.0 time=416447
+[18:08:56.900] [00:06:57.166,137] <inf> app: RX: node=44720 type=DATA seq=80 src=56992 dst=44720 prev=56992 hop=0 rssi=-44.5 time=417166
+[18:08:57.105] [00:06:57.166,168] <inf> app: DELIVER: node=44720 seq=80 src=56992 prev=56992 hops=0 rssi=-44.5 time=417166
+[18:08:58.883] [00:06:58.454,284] <inf> app: RX: node=44720 type=DATA seq=80 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=418454
+[18:08:59.088] [00:06:58.454,315] <inf> app: DELIVER: node=44720 seq=80 src=56992 prev=14402 hops=1 rssi=-23.0 time=418454
+[18:09:00.101] [00:06:59.672,821] <inf> app: RX: node=44720 type=DATA seq=81 src=56992 dst=44720 prev=56992 hop=0 rssi=-44.5 time=419672
+[18:09:00.124] [00:06:59.672,851] <inf> app: DELIVER: node=44720 seq=81 src=56992 prev=56992 hops=0 rssi=-44.5 time=419672
+[18:09:00.124] [00:07:00.460,784] <inf> app: RX: node=44720 type=DATA seq=81 src=56992 dst=44720 prev=14402 hop=1 rssi=-22.5 time=420460
+[18:09:00.329] [00:07:00.460,815] <inf> app: DELIVER: node=44720 seq=81 src=56992 prev=14402 hops=1 rssi=-22.5 time=420460
+[18:09:02.608] [00:07:02.179,412] <inf> app: RX: node=44720 type=DATA seq=82 src=56992 dst=44720 prev=56992 hop=0 rssi=-44.5 time=422179
+[18:09:02.631] [00:07:02.179,473] <inf> app: DELIVER: node=44720 seq=82 src=56992 prev=56992 hops=0 rssi=-44.5 time=422179
+[18:09:02.631] [00:07:02.467,346] <inf> app: RX: node=44720 type=DATA seq=82 src=56992 dst=44720 prev=14402 hop=1 rssi=-22.5 time=422467
+[18:09:02.833] [00:07:02.467,346] <inf> app: DELIVER: node=44720 seq=82 src=56992 prev=14402 hops=1 rssi=-22.5 time=422467
+[18:09:05.114] [00:07:04.686,065] <inf> app: RX: node=44720 type=DATA seq=83 src=56992 dst=44720 prev=56992 hop=0 rssi=-45.0 time=424686
+[18:09:05.320] [00:07:04.686,096] <inf> app: DELIVER: node=44720 seq=83 src=56992 prev=56992 hops=0 rssi=-45.0 time=424686
+[18:09:06.903] [00:07:06.474,517] <inf> app: RX: node=44720 type=DATA seq=83 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=426474
+[18:09:06.926] [00:07:06.474,548] <inf> app: DELIVER: node=44720 seq=83 src=56992 prev=14402 hops=1 rssi=-23.0 time=426474
+[18:09:06.926] [00:07:07.192,749] <inf> app: RX: node=44720 type=DATA seq=84 src=56992 dst=44720 prev=56992 hop=0 rssi=-46.0 time=427192
+[18:09:07.131] [00:07:07.192,779] <inf> app: DELIVER: node=44720 seq=84 src=56992 prev=56992 hops=0 rssi=-46.0 time=427192
+[18:09:08.909] [00:07:08.481,048] <inf> app: RX: node=44720 type=DATA seq=84 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=428480
+[18:09:09.115] [00:07:08.481,079] <inf> app: DELIVER: node=44720 seq=84 src=56992 prev=14402 hops=1 rssi=-23.0 time=428480
+[18:09:10.128] [00:07:09.699,340] <inf> app: RX: node=44720 type=DATA seq=85 src=56992 dst=44720 prev=56992 hop=0 rssi=-45.5 time=429699
+[18:09:10.152] [00:07:09.699,371] <inf> app: DELIVER: node=44720 seq=85 src=56992 prev=56992 hops=0 rssi=-45.5 time=429699
+[18:09:10.152] [00:07:10.487,579] <inf> app: RX: node=44720 type=DATA seq=85 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=430487
+[18:09:10.358] [00:07:10.487,609] <inf> app: DELIVER: node=44720 seq=85 src=56992 prev=14402 hops=1 rssi=-23.0 time=430487
+[18:09:12.634] [00:07:12.205,963] <inf> app: RX: node=44720 type=DATA seq=86 src=56992 dst=44720 prev=56992 hop=0 rssi=-44.5 time=432205
+[18:09:12.657] [00:07:12.206,024] <inf> app: DELIVER: node=44720 seq=86 src=56992 prev=56992 hops=0 rssi=-44.5 time=432205
+[18:09:12.657] [00:07:12.494,110] <inf> app: RX: node=44720 type=DATA seq=86 src=56992 dst=44720 prev=14402 hop=1 rssi=-22.5 time=432494
+[18:09:12.863] [00:07:12.494,140] <inf> app: DELIVER: node=44720 seq=86 src=56992 prev=14402 hops=1 rssi=-22.5 time=432494
+[18:09:15.141] [00:07:14.712,677] <inf> app: RX: node=44720 type=DATA seq=87 src=56992 dst=44720 prev=56992 hop=0 rssi=-45.5 time=434712
+[18:09:15.346] [00:07:14.712,707] <inf> app: DELIVER: node=44720 seq=87 src=56992 prev=56992 hops=0 rssi=-45.5 time=434712
+[18:09:16.930] [00:07:16.501,251] <inf> app: RX: node=44720 type=DATA seq=87 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=436501
+[18:09:16.952] [00:07:16.501,281] <inf> app: DELIVER: node=44720 seq=87 src=56992 prev=14402 hops=1 rssi=-23.0 time=436501
+[18:09:16.953] [00:07:17.219,268] <inf> app: RX: node=44720 type=DATA seq=88 src=56992 dst=44720 prev=56992 hop=0 rssi=-44.5 time=437219
+[18:09:17.158] [00:07:17.219,299] <inf> app: DELIVER: node=44720 seq=88 src=56992 prev=56992 hops=0 rssi=-44.5 time=437219
+[18:09:18.936] [00:07:18.507,812] <inf> app: RX: node=44720 type=DATA seq=88 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=438507
+[18:09:19.140] [00:07:18.507,843] <inf> app: DELIVER: node=44720 seq=88 src=56992 prev=14402 hops=1 rssi=-23.0 time=438507
+[18:09:20.154] [00:07:19.725,891] <inf> app: RX: node=44720 type=DATA seq=89 src=56992 dst=44720 prev=56992 hop=0 rssi=-45.0 time=439725
+[18:09:20.177] [00:07:19.725,921] <inf> app: DELIVER: node=44720 seq=89 src=56992 prev=56992 hops=0 rssi=-45.0 time=439725
+[18:09:20.177] [00:07:20.514,343] <inf> app: RX: node=44720 type=DATA seq=89 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=440514
+[18:09:20.381] [00:07:20.514,373] <inf> app: DELIVER: node=44720 seq=89 src=56992 prev=14402 hops=1 rssi=-23.0 time=440514
+[18:09:22.661] [00:07:22.232,574] <inf> app: RX: node=44720 type=DATA seq=90 src=56992 dst=44720 prev=56992 hop=0 rssi=-44.5 time=442232
+[18:09:22.684] [00:07:22.232,604] <inf> app: DELIVER: node=44720 seq=90 src=56992 prev=56992 hops=0 rssi=-44.5 time=442232
+[18:09:22.684] [00:07:22.520,904] <inf> app: RX: node=44720 type=DATA seq=90 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=442520
+[18:09:22.886] [00:07:22.520,935] <inf> app: DELIVER: node=44720 seq=90 src=56992 prev=14402 hops=1 rssi=-23.0 time=442520
+[18:09:25.167] [00:07:24.739,196] <inf> app: RX: node=44720 type=DATA seq=91 src=56992 dst=44720 prev=56992 hop=0 rssi=-45.5 time=444739
+[18:09:25.369] [00:07:24.739,227] <inf> app: DELIVER: node=44720 seq=91 src=56992 prev=56992 hops=0 rssi=-45.5 time=444739
+[18:09:26.956] [00:07:26.528,045] <inf> app: RX: node=44720 type=DATA seq=91 src=56992 dst=44720 prev=14402 hop=1 rssi=-22.5 time=446527
+[18:09:26.979] [00:07:26.528,076] <inf> app: DELIVER: node=44720 seq=91 src=56992 prev=14402 hops=1 rssi=-22.5 time=446527
+[18:09:26.979] [00:07:27.245,819] <inf> app: RX: node=44720 type=DATA seq=92 src=56992 dst=44720 prev=56992 hop=0 rssi=-45.5 time=447245
+[18:09:27.184] [00:07:27.245,849] <inf> app: DELIVER: node=44720 seq=92 src=56992 prev=56992 hops=0 rssi=-45.5 time=447245
+[18:09:28.963] [00:07:28.534,606] <inf> app: RX: node=44720 type=DATA seq=92 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=448534
+[18:09:29.168] [00:07:28.534,637] <inf> app: DELIVER: node=44720 seq=92 src=56992 prev=14402 hops=1 rssi=-23.0 time=448534
+[18:09:30.180] [00:07:29.752,502] <inf> app: RX: node=44720 type=DATA seq=93 src=56992 dst=44720 prev=56992 hop=0 rssi=-45.5 time=449752
+[18:09:30.204] [00:07:29.752,532] <inf> app: DELIVER: node=44720 seq=93 src=56992 prev=56992 hops=0 rssi=-45.5 time=449752
+[18:09:30.204] [00:07:30.541,168] <inf> app: RX: node=44720 type=DATA seq=93 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=450541
+[18:09:30.409] [00:07:30.541,168] <inf> app: DELIVER: node=44720 seq=93 src=56992 prev=14402 hops=1 rssi=-23.0 time=450541
+[18:09:32.687] [00:07:32.259,094] <inf> app: RX: node=44720 type=DATA seq=94 src=56992 dst=44720 prev=56992 hop=0 rssi=-46.0 time=452259
+[18:09:32.710] [00:07:32.259,124] <inf> app: DELIVER: node=44720 seq=94 src=56992 prev=56992 hops=0 rssi=-46.0 time=452259
+[18:09:32.710] [00:07:32.547,698] <inf> app: RX: node=44720 type=DATA seq=94 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=452547
+[18:09:32.915] [00:07:32.547,729] <inf> app: DELIVER: node=44720 seq=94 src=56992 prev=14402 hops=1 rssi=-23.0 time=452547
+[18:09:35.194] [00:07:34.765,747] <inf> app: RX: node=44720 type=DATA seq=95 src=56992 dst=44720 prev=56992 hop=0 rssi=-46.0 time=454765
+[18:09:35.398] [00:07:34.765,777] <inf> app: DELIVER: node=44720 seq=95 src=56992 prev=56992 hops=0 rssi=-46.0 time=454765
+[18:09:36.983] [00:07:36.554,809] <inf> app: RX: node=44720 type=DATA seq=95 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.5 time=456554
+[18:09:37.006] [00:07:36.554,840] <inf> app: DELIVER: node=44720 seq=95 src=56992 prev=14402 hops=1 rssi=-23.5 time=456554
+[18:09:37.006] [00:07:37.272,369] <inf> app: RX: node=44720 type=DATA seq=96 src=56992 dst=44720 prev=56992 hop=0 rssi=-45.5 time=457272
+[18:09:37.207] [00:07:37.272,399] <inf> app: DELIVER: node=44720 seq=96 src=56992 prev=56992 hops=0 rssi=-45.5 time=457272
+[18:09:38.989] [00:07:38.561,401] <inf> app: RX: node=44720 type=DATA seq=96 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=458561
+[18:09:39.193] [00:07:38.561,431] <inf> app: DELIVER: node=44720 seq=96 src=56992 prev=14402 hops=1 rssi=-23.0 time=458561
+[18:09:40.207] [00:07:39.779,052] <inf> app: RX: node=44720 type=DATA seq=97 src=56992 dst=44720 prev=56992 hop=0 rssi=-45.0 time=459778
+[18:09:40.230] [00:07:39.779,083] <inf> app: DELIVER: node=44720 seq=97 src=56992 prev=56992 hops=0 rssi=-45.0 time=459778
+[18:09:40.231] [00:07:40.567,932] <inf> app: RX: node=44720 type=DATA seq=97 src=56992 dst=44720 prev=14402 hop=1 rssi=-23.0 time=460567
+[18:09:40.433] [00:07:40.567,962] <inf> app: DELIVER: node=44720 seq=97 src=56992 prev=14402 hops=1 rssi=-23.0 time=460567
+[18:09:42.713] [00:07:42.285,644] <inf> app: RX: node=44720 type=DATA seq=98 src=56992 dst=44720 prev=56992 hop=0 rssi=-45.0 time=462285
+[18:09:42.736] [00:07:42.285,675] <inf> app: DELIVER: node=44720 seq=98 src=56992 prev=56992 hops=0 rssi=-45.0 time=462285
+[18:09:42.737] [00:07:42.574,493] <inf> app: RX: node=44720 type=DATA seq=98 src=56992 dst=44720 prev=14402 hop=1 rssi=-22.5 time=462574
+[18:09:42.938] [00:07:42.574,493] <inf> app: DELIVER: node=44720 seq=98 src=56992 prev=14402 hops=1 rssi=-22.5 time=462574
+[18:09:45.220] [00:07:44.792,297] <inf> app: RX: node=44720 type=DATA seq=99 src=56992 dst=44720 prev=56992 hop=0 rssi=-45.5 time=464792
+[18:09:45.424] [00:07:44.792,327] <inf> app: DELIVER: node=44720 seq=99 src=56992 prev=56992 hops=0 rssi=-45.5 time=464792
+[18:09:47.009] [00:07:46.581,604] <inf> app: RX: node=44720 type=DATA seq=99 src=56992 dst=44720 prev=14402 hop=1 rssi=-22.5 time=466581
+[18:09:47.215] [00:07:46.581,634] <inf> app: DELIVER: node=44720 seq=99 src=56992 prev=14402 hops=1 rssi=-22.5 time=466581
+[18:09:53.739] >>> exp stop
+[18:09:53.744] exp stop
+[18:09:53.744] stop requested
+[18:09:55.984] SUMMARY: role=sink reason=stop device_id=44720 dest=0 data_sent=0 hello_sent=0 fwd_sent=0 rx_ok=200 rx_fail=0 deliver=200 rssi_min=-48.0 rssi_avg=-33.5 rssi_max=-22.5

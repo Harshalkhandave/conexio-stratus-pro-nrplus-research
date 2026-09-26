@@ -17,6 +17,7 @@
 #include <zephyr/drivers/hwinfo.h>
 
 #include "topo_packet.h"
+#include "topo_persist.h"
 #include "topo_runtime.h"
 
 LOG_MODULE_REGISTER(app);
@@ -801,7 +802,12 @@ int main(void)
 
 	resolve_device_id();
 	LOG_INF("device_id=%u (0x%04x)", topo_device_id(), topo_device_id());
-	LOG_INF("Commands: exp status|role|sett|start|stop|neigh");
+
+	if (IS_ENABLED(CONFIG_TOPO_PERSIST)) {
+		(void)topo_persist_load();
+	}
+
+	LOG_INF("Commands: exp status|role|sett|start|stop|neigh|save|load|factory|autostart");
 
 	err = nrf_modem_dect_phy_capability_get();
 	if (err) {
@@ -812,9 +818,23 @@ int main(void)
 			NULL, NULL, 5, 0, K_NO_WAIT);
 	k_thread_name_set(&radio_thread_data, "topo_radio");
 
-	if (!IS_ENABLED(CONFIG_TOPO_WAIT_FOR_START)) {
-		topo_request_start(UINT32_MAX);
-		LOG_INF("auto-start enabled");
+	if (topo_should_autostart()) {
+		enum topo_role role;
+		uint16_t dest;
+
+		topo_runtime_lock();
+		role = topo_runtime_get()->role;
+		dest = topo_runtime_get()->dest_id;
+		topo_runtime_unlock();
+
+		if (role == TOPO_ROLE_SOURCE_V && dest == 0) {
+			LOG_WRN("autostart skipped: source needs dest_id (exp sett dest + exp save)");
+			LOG_INF("waiting for: exp start");
+		} else {
+			topo_request_start(UINT32_MAX);
+			LOG_INF("auto-start enabled (role=%s dest=%u)", topo_role_str(role), dest);
+			printk("persist: auto-start role=%s dest=%u\n", topo_role_str(role), dest);
+		}
 	} else {
 		LOG_INF("waiting for: exp start");
 	}
