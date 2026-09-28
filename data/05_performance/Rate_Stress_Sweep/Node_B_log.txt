@@ -1,0 +1,14 @@
+===== visualizer 2.0.0 capture start 2026-09-27T21:18:02 port=socket://10.0.0.139:7778 =====
+[21:18:54.422] ##### apply Node A: {'power': 7, 'size': 64}
+[21:18:56.939] ##### start Node C role=sink count=0
+[21:18:59.306] ##### start Node A role=source count=100
+[21:20:05.009] ##### apply Node A: {'interval': 200}
+[21:20:09.173] ##### start Node A role=source count=100
+[21:20:47.461] ##### apply Node A: {'interval': 50}
+[21:20:53.673] ##### start Node A role=source count=100
+[21:21:09.672] ##### apply Node A: {'interval': 20}
+[21:21:20.916] ##### start Node A role=source count=100
+[21:21:32.490] ##### apply Node A: {'interval': 10}
+[21:21:38.416] ##### start Node A role=source count=100
+[21:21:47.274] ##### stop all
+===== visualizer capture end 2026-09-27T21:21:54 =====

@@ -16,6 +16,7 @@ Engineering workspace for characterizing **DECT NR+** on the [Conexio Stratus Pr
 | **[`experiments/02_range/`](experiments/02_range/)** | **Range & RF Characterization** | RF range & link characterization campaign with split-host automated test scripts. |
 | **[`experiments/03_topology/`](experiments/03_topology/)** | **Multi-Hop Topology** | Three-node multi-hop forwarding ($A \to B \to C$), hop tracking, link metrics, and NVS flash profile persistence (`exp save`, autostart). |
 | **[`experiments/04_healing/`](experiments/04_healing/)** | **Self-Healing & Failure Testing** | Fault tolerance, cold-boot recovery (~595 ms), severed relay healing, sink disconnection, and mobile relaying. |
+| **[`experiments/05_performance/`](experiments/05_performance/)** | **Performance & Stress Characterization** | Baseline transit jitter, MTU payload scaling (18–249B), high-rate stress sweep (down to 10 ms), and channel throughput limit (124+ kbps goodput / 127 kbps PHY). |
 
 ---
 
@@ -24,7 +25,7 @@ Engineering workspace for characterizing **DECT NR+** on the [Conexio Stratus Pr
 - **[`tools/topology_visualizer/`](tools/topology_visualizer/)** — Real-time PyQt6 desktop topology visualizer with auto-discovery, interactive canvas, animated packet delivery, node inspector, live serial console, and NVS flash profile management.
 - **[`tools/logger/`](tools/logger/)** — Python serial logger with local wall-clock timestamps and TCP serial redirection (`tcp_serial_redirect.py`).
 - **[`tools/range_campaign/`](tools/range_campaign/)** — Automated multi-condition sweep harness (`range_campaign.py`, `range_tx.py`, `range_rx.py`).
-- **[`tools/parser/`](tools/parser/)** — Serial log parser converting compact `TX:` / `RX:` feeds into tabular CSVs.
+- **[`tools/parser/`](tools/parser/)** — Serial log parser converting compact `TX:` / `RX:` feeds into tabular CSVs, plus multi-hop performance parser (`parse_performance.py`).
 
 ---
 
@@ -32,6 +33,8 @@ Engineering workspace for characterizing **DECT NR+** on the [Conexio Stratus Pr
 
 - **[`reports/03_topology/NR_Topology_Characterization_Report.md`](reports/03_topology/NR_Topology_Characterization_Report.md)** — Comprehensive characterization of three-node pairwise reachability, forwarding behavior, and path stability.
 - **[`reports/04_healing/NR_Self_Healing_Report.md`](reports/04_healing/NR_Self_Healing_Report.md)** — Evaluation of fault recovery, cold-boot timelines, intermediate relay severance, and relay mobility ($40\text{ dBm}$ RSSI span).
+- **[`reports/05_performance/NR_Performance_Report.md`](reports/05_performance/NR_Performance_Report.md)** — Multi-hop transit jitter, MTU payload scaling (18–249B), high-rate sweep resilience, and peak channel throughput (124.26 kbps goodput / 127.26 kbps PHY).
+
 
 ---
 
@@ -58,22 +61,25 @@ Full application details, overlays, and bring-up checks: [`experiments/01_baseli
 
 ```
 conexio-stratus-pro-nrplus-research/
-├── data/                    # Datasets (01_baseline, 02_range, 03_topology, 04_healing)
+├── data/                    # Datasets (01_baseline, 02_range, 03_topology, 04_healing, 05_performance)
 ├── docs/                    # Detailed architecture and procedures
 │   ├── 01_baseline/         # Baseline bring-up, packet format, logging specs
 │   ├── 03_topology/         # Multi-hop procedures, persistence, visualizer specs
-│   └── 04_healing/          # Self-healing and fault injection procedures
+│   ├── 04_healing/          # Self-healing and fault injection procedures
+│   └── 05_performance/      # Performance characterization & stress procedures
 ├── experiments/             # Zephyr / NCS firmware code
 │   ├── 01_baseline/         # Baseline PHY application
 │   ├── 02_range/            # Range campaign procedure
 │   ├── 03_topology/         # Multi-hop & persistence firmware
-│   └── 04_healing/          # Self-healing experiment overview
+│   ├── 04_healing/          # Self-healing experiment overview
+│   └── 05_performance/      # Performance, latency & throughput overview
 ├── reports/                 # Formal engineering reports & evaluation
 │   ├── 03_topology/         # Multi-hop topology characterization report
-│   └── 04_healing/          # Self-healing & recovery report
+│   ├── 04_healing/          # Self-healing & recovery report
+│   └── 05_performance/      # Performance, latency & throughput report
 └── tools/                   # Engineering tooling
     ├── logger/              # Serial logging & TCP redirects
-    ├── parser/              # PDU parser to CSV
+    ├── parser/              # PDU & performance log parsers to CSV
     ├── range_campaign/      # Automated RF campaign runner
     └── topology_visualizer/ # PyQt6 Desktop visualizer application
 ```

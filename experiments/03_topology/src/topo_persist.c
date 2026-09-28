@@ -20,7 +20,7 @@
 LOG_MODULE_REGISTER(topo_persist, CONFIG_DECT_PHY_TOPO_LOG_LEVEL);
 
 #define TOPO_PERSIST_MAGIC   0x4F504F54u /* 'TOPO' */
-#define TOPO_PERSIST_VERSION 1u
+#define TOPO_PERSIST_VERSION 2u
 #define TOPO_PERSIST_KEY     "topo/cfg"
 
 struct topo_persist_cfg {
@@ -37,7 +37,10 @@ struct topo_persist_cfg {
 	uint32_t hello_interval_ms;
 	uint32_t tx_count;
 	uint8_t dedup;
-	uint8_t reserved[8];
+	uint8_t source_rx;
+	uint8_t fwd_mode;
+	uint16_t rx_window_ms;
+	uint8_t reserved[4];
 } __packed;
 
 BUILD_ASSERT(sizeof(struct topo_persist_cfg) == 36, "persist blob size");
@@ -66,7 +69,8 @@ static int persist_set_handler(const char *name, size_t len, settings_read_cb re
 		if ((size_t)n != sizeof(g_loaded)) {
 			return -EINVAL;
 		}
-		if (g_loaded.magic != TOPO_PERSIST_MAGIC || g_loaded.version != TOPO_PERSIST_VERSION) {
+		if (g_loaded.magic != TOPO_PERSIST_MAGIC ||
+		    (g_loaded.version != TOPO_PERSIST_VERSION && g_loaded.version != 1u)) {
 			LOG_WRN("topo/cfg bad magic/version");
 			return -EINVAL;
 		}
@@ -94,6 +98,15 @@ static void apply_blob_to_runtime(const struct topo_persist_cfg *cfg)
 	rt->hello_interval_ms = cfg->hello_interval_ms;
 	rt->tx_count = cfg->tx_count;
 	rt->dedup = cfg->dedup != 0;
+	if (cfg->version >= 2u) {
+		rt->source_rx = cfg->source_rx != 0;
+		rt->fwd_mode = (enum topo_fwd_mode)cfg->fwd_mode;
+		rt->rx_window_ms = cfg->rx_window_ms;
+	} else {
+		rt->source_rx = true;
+		rt->fwd_mode = TOPO_FWD_CUT_THROUGH;
+		rt->rx_window_ms = 2000;
+	}
 	topo_runtime_unlock();
 
 	g_autostart = cfg->autostart != 0;
@@ -120,6 +133,9 @@ static void fill_blob_from_runtime(struct topo_persist_cfg *cfg)
 	cfg->hello_interval_ms = rt->hello_interval_ms;
 	cfg->tx_count = rt->tx_count;
 	cfg->dedup = rt->dedup ? 1U : 0U;
+	cfg->source_rx = rt->source_rx ? 1U : 0U;
+	cfg->fwd_mode = (uint8_t)rt->fwd_mode;
+	cfg->rx_window_ms = (uint16_t)rt->rx_window_ms;
 	topo_runtime_unlock();
 }
 
@@ -151,7 +167,7 @@ bool topo_persist_load(void)
 		LOG_WRN("invalid saved role %u", g_loaded.role);
 		return false;
 	}
-	if (g_loaded.packet_size < sizeof(struct topo_packet) || g_loaded.packet_size > 32) {
+	if (g_loaded.packet_size < sizeof(struct topo_packet) || g_loaded.packet_size > 250) {
 		LOG_WRN("invalid saved size %u", g_loaded.packet_size);
 		return false;
 	}
@@ -167,9 +183,10 @@ bool topo_persist_load(void)
 	apply_blob_to_runtime(&g_loaded);
 	LOG_INF("loaded profile role=%s dest=%u autostart=%u", topo_role_str(g_loaded.role),
 		g_loaded.dest_id, g_loaded.autostart);
-	printk("persist: loaded role=%s dest=%u power=%u autostart=%u dedup=%u\n",
+	printk("persist: loaded role=%s dest=%u power=%u autostart=%u dedup=%u source_rx=%u fwd=%s rx_win=%u\n",
 	       topo_role_str((enum topo_role)g_loaded.role), g_loaded.dest_id, g_loaded.tx_power,
-	       g_loaded.autostart, g_loaded.dedup);
+	       g_loaded.autostart, g_loaded.dedup, g_loaded.source_rx,
+	       topo_fwd_mode_str((enum topo_fwd_mode)g_loaded.fwd_mode), g_loaded.rx_window_ms);
 	return true;
 }
 

@@ -682,6 +682,8 @@ class TopologyCanvas(QGraphicsView):
         self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
         self.setDragMode(QGraphicsView.DragMode.RubberBandDrag)
         self.setFrameShape(QGraphicsView.Shape.NoFrame)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setMinimumSize(560, 380)
         self._last_tick = time.monotonic()
         self._zoom = 1.0
@@ -736,8 +738,8 @@ class TopologyCanvas(QGraphicsView):
         old = self._scene.sceneRect()
         # Only update when the change exceeds a small threshold to prevent
         # sub-pixel oscillation between frames.
-        if (abs(rect.x() - old.x()) > 2 or abs(rect.y() - old.y()) > 2 or
-                abs(rect.width() - old.width()) > 2 or abs(rect.height() - old.height()) > 2):
+        if (abs(rect.x() - old.x()) > 8 or abs(rect.y() - old.y()) > 8 or
+                abs(rect.width() - old.width()) > 8 or abs(rect.height() - old.height()) > 8):
             self._scene.setSceneRect(rect)
 
     def select(self, port: Optional[str]) -> None:

@@ -91,6 +91,8 @@ def severity(body: str) -> str:
         return SEV_TX
     if body.startswith("RX:"):
         return SEV_RX
+    if body.startswith("FORWARD_DROP:"):
+        return SEV_WARN
     if body.startswith("FORWARD"):
         return SEV_RELAY
     if body.startswith("DELIVER:"):
@@ -116,6 +118,7 @@ class TopoEvent:
     hops: Optional[int] = None
     rssi: Optional[float] = None
     msg_type: Optional[str] = None
+    time_us: Optional[int] = None
     role: Optional[str] = None
     device_id: Optional[int] = None
     running: Optional[bool] = None
@@ -150,6 +153,9 @@ class StatusSnapshot:
     mcs: Optional[int] = None
     size: Optional[int] = None
     dedup: Optional[bool] = None
+    source_rx: Optional[bool] = None
+    rx_window_ms: Optional[int] = None
+    fwd_mode: Optional[str] = None
     autostart: Optional[bool] = None
     persist: Optional[bool] = None
     seq_next: Optional[int] = None
@@ -162,6 +168,7 @@ class StatusSnapshot:
     fwd_dup: Optional[int] = None
     fwd_ttl: Optional[int] = None
     fwd_qfull: Optional[int] = None
+    q_peak: Optional[int] = None
     raw_lines: list[str] = field(default_factory=list)
 
 
@@ -172,8 +179,12 @@ STATUS_FIELD_HINTS = (
     "interval_ms=",
     "power=",
     "dedup=",
+    "source_rx=",
+    "rx_win=",
+    "fwd=",
     "seq_next=",
     "rx_ok=",
+    "q_peak=",
     "device_id=",
     "dest_id=",
     "hello_ms=",
@@ -190,16 +201,19 @@ class StatusAccumulator:
     def __init__(self) -> None:
         self.active = False
         self.lines: list[str] = []
+        self._stray_count = 0
 
     def reset(self) -> None:
         self.active = False
         self.lines = []
+        self._stray_count = 0
 
     def feed(self, body: str) -> Optional[StatusSnapshot]:
         body = body.strip()
         if body.startswith("exp status:"):
             self.active = True
             self.lines = [body]
+            self._stray_count = 0
             return None
         if not self.active:
             return None
@@ -210,7 +224,16 @@ class StatusAccumulator:
                 self.reset()
                 return snap
             return None
-        return self.flush()
+        # Unrelated line arrived while status is accumulating.
+        # If a shell prompt, next command, or neighbor command starts, flush what we have.
+        if body.startswith("exp neigh:") or body.startswith("uart:~$") or body.startswith(">>>"):
+            return self.flush()
+        # Interleaved radio log line (TX, RX, FORWARD, dropped messages, etc.):
+        # Do NOT abort/flush! Keep accumulator active so remaining status lines can be gathered.
+        self._stray_count += 1
+        if self._stray_count > 50:
+            return self.flush()
+        return None
 
     def consumes(self, body: str) -> bool:
         """True when `body` is part of a status block (already handled here)."""
@@ -233,12 +256,19 @@ class NeighborAccumulator:
     def __init__(self) -> None:
         self.active = False
         self.rows: list[Neighbor] = []
+        self._stray_count = 0
+
+    def reset(self) -> None:
+        self.active = False
+        self.rows = []
+        self._stray_count = 0
 
     def feed(self, body: str) -> Optional[list[Neighbor]]:
         body = body.strip()
         if body.startswith("exp neigh:"):
             self.active = True
             self.rows = []
+            self._stray_count = 0
             return None
         if not self.active:
             return None
@@ -258,9 +288,18 @@ class NeighborAccumulator:
             self.active = False
             rows, self.rows = self.rows, []
             return rows
-        self.active = False
-        rows, self.rows = self.rows, []
-        return rows
+        # End of neighbor block on prompt or next command
+        if body.startswith("exp status:") or body.startswith("uart:~$") or body.startswith(">>>"):
+            self.active = False
+            rows, self.rows = self.rows, []
+            return rows
+        # Interleaved log line: do not abort neighbor accumulation immediately
+        self._stray_count += 1
+        if self._stray_count > 30:
+            self.active = False
+            rows, self.rows = self.rows, []
+            return rows
+        return None
 
     def consumes(self, body: str) -> bool:
         body = body.strip()
@@ -287,6 +326,9 @@ def parse_status_lines(lines: list[str]) -> StatusSnapshot:
     snap.mcs = _i(kv, "mcs")
     snap.size = _i(kv, "size")
     snap.dedup = _b(kv, "dedup")
+    snap.source_rx = _b(kv, "source_rx")
+    snap.rx_window_ms = _i(kv, "rx_win")
+    snap.fwd_mode = kv.get("fwd")
     snap.autostart = _b(kv, "autostart")
     snap.persist = _b(kv, "persist")
     snap.seq_next = _i(kv, "seq_next")
@@ -299,6 +341,7 @@ def parse_status_lines(lines: list[str]) -> StatusSnapshot:
     snap.fwd_dup = _i(kv, "fwd_dup")
     snap.fwd_ttl = _i(kv, "fwd_ttl")
     snap.fwd_qfull = _i(kv, "fwd_qfull")
+    snap.q_peak = _i(kv, "q_peak")
     return snap
 
 
@@ -326,7 +369,8 @@ def parse_line(line: str) -> Optional[TopoEvent]:
             src=_i(kv, "src") or _i(kv, "node"),
             dst=_i(kv, "dst"),
             seq=_i(kv, "seq"),
-            hops=_i(kv, "hop"),
+            hops=_i(kv, "hops") if _i(kv, "hops") is not None else _i(kv, "hop"),
+            time_us=_i(kv, "time_us"),
             msg_type=kv.get("type"),
         )
 
@@ -340,9 +384,30 @@ def parse_line(line: str) -> Optional[TopoEvent]:
             dst=_i(kv, "dst"),
             prev=_i(kv, "prev"),
             seq=_i(kv, "seq"),
-            hops=_i(kv, "hop"),
+            hops=_i(kv, "hops") if _i(kv, "hops") is not None else _i(kv, "hop"),
             rssi=_f(kv, "rssi"),
+            time_us=_i(kv, "time_us"),
             msg_type=kv.get("type"),
+        )
+
+    if body.startswith("FORWARD_DROP:"):
+        reason = kv.get("reason")
+        if reason is None:
+            if "duplicate" in body:
+                reason = "dup"
+            elif "queue_full" in body:
+                reason = "queue_full"
+            elif "ttl" in body:
+                reason = "ttl"
+        return TopoEvent(
+            kind="forward_drop",
+            host_ts=host_ts,
+            raw=body,
+            node=_i(kv, "node"),
+            src=_i(kv, "src"),
+            seq=_i(kv, "seq"),
+            hops=_i(kv, "hops") if _i(kv, "hops") is not None else _i(kv, "hop"),
+            msg_type=reason,
         )
 
     if body.startswith("FORWARD:") or body.startswith("FORWARD_Q:"):
@@ -356,7 +421,7 @@ def parse_line(line: str) -> Optional[TopoEvent]:
             dst=_i(kv, "dst"),
             prev=_i(kv, "prev"),
             seq=_i(kv, "seq"),
-            hops=_i(kv, "hop"),
+            hops=_i(kv, "hops") if _i(kv, "hops") is not None else _i(kv, "hop"),
         )
 
     if body.startswith("DELIVER:"):
@@ -368,8 +433,9 @@ def parse_line(line: str) -> Optional[TopoEvent]:
             src=_i(kv, "src"),
             prev=_i(kv, "prev"),
             seq=_i(kv, "seq"),
-            hops=_i(kv, "hops"),
+            hops=_i(kv, "hops") if _i(kv, "hops") is not None else _i(kv, "hop"),
             rssi=_f(kv, "rssi"),
+            time_us=_i(kv, "time_us"),
         )
 
     if body.startswith("SUMMARY:"):
@@ -431,7 +497,13 @@ def parse_line(line: str) -> Optional[TopoEvent]:
     if body.startswith("stop requested") or body == "not running":
         return TopoEvent(kind="stopped", host_ts=host_ts, raw=body)
 
-    if body.startswith("ok") or body.startswith("dedup="):
+    if (
+        body.startswith("ok")
+        or body.startswith("dedup=")
+        or body.startswith("source_rx=")
+        or body.startswith("rx_window=")
+        or body.startswith("fwd_mode=")
+    ):
         return TopoEvent(kind="ack", host_ts=host_ts, raw=body)
 
     return TopoEvent(kind="log", host_ts=host_ts, raw=body)

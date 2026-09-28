@@ -48,6 +48,9 @@ class BoardConfig:
     mcs: int = 1
     size: int = 32
     dedup: bool = True
+    source_rx: bool = True
+    rx_window_ms: int = 2000
+    fwd_mode: str = "cut_through"
     carrier: int = 1
     net: str = "0x1a2b"
     autostart: bool = False
@@ -65,6 +68,7 @@ class Counters:
     fwd_dup: int = 0
     fwd_ttl: int = 0
     fwd_qfull: int = 0
+    q_peak: int = 0
 
 
 @dataclass
@@ -125,9 +129,11 @@ class MockBoard:
             "stop": self._cmd_stop,
             "role": self._cmd_role,
             "sett": self._cmd_sett,
+            "set": self._cmd_sett,
             "save": self._cmd_save,
             "load": self._cmd_load,
             "factory": self._cmd_factory,
+            "reset": self._cmd_factory,
             "autostart": self._cmd_autostart,
         }.get(cmd)
         if handler is None:
@@ -146,7 +152,10 @@ class MockBoard:
         self.shell(
             f"  interval_ms={c.interval_ms} hello_ms={c.hello_ms} count={c.count} (0=forever)"
         )
-        self.shell(f"  power={c.power} mcs={c.mcs} size={c.size} dedup={1 if c.dedup else 0}")
+        self.shell(
+            f"  power={c.power} mcs={c.mcs} size={c.size} dedup={1 if c.dedup else 0} "
+            f"source_rx={1 if c.source_rx else 0} rx_win={c.rx_window_ms} fwd={c.fwd_mode}"
+        )
         self.shell(
             f"  autostart={1 if c.autostart else 0} persist={1 if self.saved else 0}"
         )
@@ -156,7 +165,7 @@ class MockBoard:
         )
         self.shell(
             f"  rx_ok={k.rx_ok} rx_fail={k.rx_fail} deliver={k.deliver} fwd_dup={k.fwd_dup} "
-            f"fwd_ttl={k.fwd_ttl} fwd_qfull={k.fwd_qfull}"
+            f"fwd_ttl={k.fwd_ttl} fwd_qfull={k.fwd_qfull} q_peak={k.q_peak}"
         )
 
     def _cmd_neigh(self, _args: list[str]) -> None:
@@ -216,6 +225,7 @@ class MockBoard:
             self.shell(f"unknown role '{args[0]}' (source|relay|sink)")
             return
         self.cfg.role = args[0]
+        self.cfg.source_rx = True
         self.shell(f"role={self.cfg.role} (RAM only -> exp save to persist)")
 
     def _cmd_sett(self, args: list[str]) -> None:
@@ -238,6 +248,36 @@ class MockBoard:
             self.cfg.dedup = val in ("on", "1", "true")
             self.shell(f"dedup={1 if self.cfg.dedup else 0} (RAM — exp save to persist)")
             return
+        if key == "source_rx":
+            val = value.lower()
+            if val not in ("on", "off", "1", "0", "true", "false"):
+                self.shell("source_rx must be on|off (or 1|0)")
+                return
+            self.cfg.source_rx = val in ("on", "1", "true")
+            if self.cfg.source_rx and self.cfg.rx_window_ms == 0:
+                self.cfg.rx_window_ms = 2000
+            elif not self.cfg.source_rx:
+                self.cfg.rx_window_ms = 0
+            self.shell(f"source_rx={1 if self.cfg.source_rx else 0} (RAM — exp save to persist)")
+            return
+        if key in ("rx_window", "rx_win"):
+            try:
+                ms = int(value, 0)
+            except ValueError:
+                self.shell("rx_window must be an integer")
+                return
+            self.cfg.rx_window_ms = ms
+            self.cfg.source_rx = ms > 0
+            self.shell(f"rx_window={ms} ms (source_rx={1 if self.cfg.source_rx else 0}) (RAM — exp save to persist)")
+            return
+        if key in ("fwd_mode", "cut_through"):
+            val = value.lower()
+            if val not in ("cut_through", "batch"):
+                self.shell("fwd_mode must be cut_through|batch")
+                return
+            self.cfg.fwd_mode = val
+            self.shell(f"fwd_mode={self.cfg.fwd_mode} (RAM — exp save to persist)")
+            return
         try:
             number = int(value, 0)
         except ValueError:
@@ -250,7 +290,7 @@ class MockBoard:
             "count": (0, 1000000),
             "power": (0, 13),
             "mcs": (0, 7),
-            "size": (8, 32),
+            "size": (18, 250),
             "max_hops": (1, 16),
         }
         if key not in limits:
@@ -300,6 +340,9 @@ class MockBoard:
         self.saved = None
         self.cfg.autostart = False
         self.cfg.dedup = True
+        self.cfg.source_rx = True
+        self.cfg.rx_window_ms = 2000
+        self.cfg.fwd_mode = "cut_through"
         self.shell("cleared flash profile; RAM restored to Kconfig defaults")
         self.shell(f"role={self.cfg.role} dest={self.cfg.dest_id} autostart=0")
 
@@ -387,6 +430,7 @@ class MockBoard:
             return
         forwarded = Packet(pkt.seq, pkt.src, pkt.dst, me, pkt.hop + 1)
         self.counters.fwd_sent += 1
+        self.counters.q_peak = max(self.counters.q_peak, 1)
         self.log(
             f"FORWARD: node={me} seq={forwarded.seq} src={forwarded.src} dst={forwarded.dst} "
             f"prev={forwarded.prev} hop={forwarded.hop} size={self.cfg.size}"

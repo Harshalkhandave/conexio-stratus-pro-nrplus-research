@@ -39,6 +39,7 @@ from ui.dialogs import (
     confirm,
     confirm_changes,
     confirm_unsaved,
+    prompt_capture_session,
     prompt_text,
     warn_disconnect,
 )
@@ -805,12 +806,17 @@ class MainWindow(QMainWindow):
         if node is None:
             return
         pending = self.inspector.pending_autostart(port)
-        detail = ""
+        flash_warn = (
+            "⚠️ HARDWARE WARNING: Flash writes physically consume NOR erase cycles. "
+            "Only write to flash if you need these settings to persist across power resets."
+        )
         if pending is not None:
             detail = (
-                f"Autostart will also be turned {'on' if pending else 'off'} as part of this "
-                f"save."
+                f"Autostart will also be turned {'on' if pending else 'off'} as part of this save.\n\n"
+                + flash_warn
             )
+        else:
+            detail = flash_warn
         if not confirm(
             self,
             f"Save profile on {node.label}?",
@@ -844,6 +850,7 @@ class MainWindow(QMainWindow):
             "The flash profile is erased and RAM values return to the firmware defaults.",
             accept_text="Clear profile",
             destructive=True,
+            detail="⚠️ HARDWARE WARNING: Erasing flash sectors consumes write endurance cycles. Only do this if necessary to restore default firmware configuration.",
         ):
             return
         self._block(
@@ -963,16 +970,20 @@ class MainWindow(QMainWindow):
             if not self.model.nodes:
                 self.toasts.show("Connect at least one board before capturing.", "warning")
                 return
-            name = prompt_text(
+            res = prompt_capture_session(
                 self,
-                "Start capture",
-                "Session folder name",
+                title="Start capture",
                 placeholder="exp1_pairwise",
                 hint=f"Logs are written to {DATA_ROOT}\\<name>\\ — one file per node, plus "
                 "session.json.",
             )
-            if not name:
+            if not res:
                 return
+            name, do_reset = res
+            if do_reset:
+                self.model.reset_metrics()
+                self._refresh_ui(force=True)
+                self.toasts.show("Session metrics & PDR reset for new capture", "info")
             folder = self.capture.start(
                 name,
                 list(self.model.nodes.keys()),

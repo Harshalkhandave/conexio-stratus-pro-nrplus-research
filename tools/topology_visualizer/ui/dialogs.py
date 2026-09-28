@@ -158,6 +158,52 @@ def prompt_text(
     return edit.text().strip() or None
 
 
+def prompt_capture_session(
+    parent: Optional[QWidget],
+    title: str = "Start capture",
+    default: str = "",
+    placeholder: str = "",
+    hint: str = "",
+    default_reset: bool = True,
+) -> Optional[tuple[str, bool]]:
+    """Prompt for session name with a default-checked option to reset metrics."""
+    dlg, lay = _dialog_shell(parent, title)
+    cap = QLabel("Session folder name")
+    cap.setObjectName("StatLabel")
+    edit = QLineEdit(default)
+    edit.setPlaceholderText(placeholder)
+    edit.selectAll()
+    lay.addWidget(cap)
+    lay.addWidget(edit)
+
+    chk_reset = CheckBox("Reset live metrics & session counters (PDR, delivery, drops)")
+    chk_reset.setChecked(default_reset)
+    chk_reset.setToolTip(
+        "Clear session PDR, packet delivery counts, and route timings to start fresh for this capture session."
+    )
+    lay.addWidget(chk_reset)
+
+    if hint:
+        note = QLabel(hint)
+        note.setObjectName("Faint")
+        note.setWordWrap(True)
+        lay.addWidget(note)
+    buttons = QDialogButtonBox(
+        QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+    )
+    buttons.button(QDialogButtonBox.StandardButton.Ok).setProperty("variant", "primary")
+    buttons.accepted.connect(dlg.accept)
+    buttons.rejected.connect(dlg.reject)
+    lay.addWidget(buttons)
+    edit.returnPressed.connect(dlg.accept)
+    if dlg.exec() != QDialog.DialogCode.Accepted:
+        return None
+    name = edit.text().strip()
+    if not name:
+        return None
+    return name, chk_reset.isChecked()
+
+
 def confirm_unsaved(
     parent: Optional[QWidget],
     node_label: str,
@@ -381,6 +427,7 @@ class ConnectDialog(QDialog):
         self.list_lay.addStretch(1)
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         scroll.setWidget(self.list_holder)
         scroll.setMinimumHeight(150)
         outer.addWidget(scroll, 1)

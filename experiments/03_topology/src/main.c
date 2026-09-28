@@ -27,13 +27,15 @@ BUILD_ASSERT(CONFIG_TOPO_PACKET_SIZE >= sizeof(struct topo_packet),
 	     "CONFIG_TOPO_PACKET_SIZE too small for topo_packet");
 BUILD_ASSERT(sizeof(struct topo_packet) == 18, "topo_packet size changed — update docs");
 
-#define DATA_LEN_MAX 32
+#define DATA_LEN_MAX 250
 #define RADIO_STACK_SIZE 4096
 
 static bool phy_fatal;
 static uint64_t modem_time;
 static uint16_t last_sender_id;
 static int64_t last_hello_ms;
+static uint32_t g_rx_handle = 1;
+static volatile bool g_rx_active;
 
 struct phy_ctrl_field_common {
 	uint32_t packet_length : 4;
@@ -50,6 +52,8 @@ struct phy_ctrl_field_common {
 
 K_SEM_DEFINE(operation_sem, 0, 1);
 K_SEM_DEFINE(deinit_sem, 0, 1);
+static K_SEM_DEFINE(tx_sem, 0, 1);
+static K_SEM_DEFINE(rx_sem, 0, 1);
 
 static void on_init(const struct nrf_modem_dect_phy_init_event *evt)
 {
@@ -134,14 +138,30 @@ static void on_time_get(const struct nrf_modem_dect_phy_time_get_event *evt)
 
 static void on_cancel(const struct nrf_modem_dect_phy_cancel_event *evt)
 {
-	LOG_DBG("on_cancel cb status %d", evt->err);
-	k_sem_give(&operation_sem);
+	LOG_DBG("on_cancel cb handle %u status %d", evt->handle, evt->err);
+	if (evt->handle == g_rx_handle) {
+		g_rx_active = false;
+		k_sem_give(&rx_sem);
+	} else {
+		k_sem_give(&operation_sem);
+	}
 }
 
 static void on_op_complete(const struct nrf_modem_dect_phy_op_complete_event *evt)
 {
-	LOG_DBG("op_complete cb time %" PRIu64 " status %d", modem_time, evt->err);
-	k_sem_give(&operation_sem);
+	LOG_DBG("op_complete cb handle %u time %" PRIu64 " status %d",
+		evt->handle, modem_time, evt->err);
+	if (evt->handle == g_rx_handle) {
+		g_rx_active = false;
+		k_sem_give(&rx_sem);
+	} else if (evt->handle == 0) {
+		if (evt->err) {
+			LOG_WRN("TX op completed with err %d", evt->err);
+		}
+		k_sem_give(&tx_sem);
+	} else {
+		k_sem_give(&operation_sem);
+	}
 }
 
 static void on_pcc(const struct nrf_modem_dect_phy_pcc_event *evt)
@@ -169,14 +189,20 @@ static void handle_data_rx(const struct topo_packet *pkt, int rssi_i, int rssi_f
 	max_hops = rt->max_hops;
 	topo_runtime_unlock();
 
-	LOG_INF("RX: node=%u type=DATA seq=%u src=%u dst=%u prev=%u hop=%u rssi=%d.%d time=%llu",
+	uint64_t rx_time_us = (uint64_t)k_ticks_to_us_near64(k_uptime_ticks());
+
+	LOG_INF("RX: node=%u type=DATA seq=%u src=%u dst=%u prev=%u hop=%u rssi=%d.%d time=%llu time_us=%llu",
 		me, pkt->sequence, pkt->src, pkt->dst, pkt->prev_hop, pkt->hop_count, rssi_i,
-		rssi_f, (unsigned long long)rx_time_ms);
+		rssi_f, (unsigned long long)rx_time_ms, (unsigned long long)rx_time_us);
 
 	if (pkt->dst == me) {
-		LOG_INF("DELIVER: node=%u seq=%u src=%u prev=%u hops=%u rssi=%d.%d time=%llu", me,
+		if (topo_seen_is_dup(pkt->src, pkt->sequence)) {
+			LOG_DBG("sink drop dup src=%u seq=%u", pkt->src, pkt->sequence);
+			return;
+		}
+		LOG_INF("DELIVER: node=%u seq=%u src=%u prev=%u hops=%u rssi=%d.%d time=%llu time_us=%llu", me,
 			pkt->sequence, pkt->src, pkt->prev_hop, pkt->hop_count, rssi_i, rssi_f,
-			(unsigned long long)rx_time_ms);
+			(unsigned long long)rx_time_ms, (unsigned long long)rx_time_us);
 		topo_runtime_lock();
 		rt->deliver_ok++;
 		topo_runtime_unlock();
@@ -217,6 +243,18 @@ static void handle_data_rx(const struct topo_packet *pkt, int rssi_i, int rssi_f
 		if (topo_fwd_enqueue(&fwd)) {
 			LOG_INF("FORWARD_Q: node=%u seq=%u src=%u dst=%u prev=%u hop=%u", me,
 				fwd.sequence, fwd.src, fwd.dst, fwd.prev_hop, fwd.hop_count);
+
+			topo_runtime_lock();
+			enum topo_fwd_mode fmode = rt->fwd_mode;
+			topo_runtime_unlock();
+
+			/* Cut-through forwarding: abort active RX slice to forward immediately */
+			if (fmode == TOPO_FWD_CUT_THROUGH && g_rx_active) {
+				int rc = nrf_modem_dect_phy_cancel(g_rx_handle);
+				if (rc != 0) {
+					LOG_DBG("cancel g_rx_handle rc=%d", rc);
+				}
+			}
 		} else {
 			LOG_WRN("FORWARD_DROP: node=%u seq=%u reason=queue_full", me, pkt->sequence);
 		}
@@ -388,12 +426,73 @@ static struct nrf_modem_dect_phy_config_params dect_phy_config_params = {
 	.harq_rx_expiry_time_us = 5000000,
 };
 
+/* DECT-2020 NR Physical Layer Transport Block Size (TBS) table in bits.
+ * Row: MCS (0 to 4). Column: subslot duration index (0 to 15).
+ * Ref: ETSI TS 103 636-4 Clause 5.3 & Nordic nRF Connect SDK dect_common_utils.c
+ */
+static const int16_t dect_tbs_table[5][16] = {
+	/* MCS-0 (BPSK, 1/2): */
+	{ 0, 136, 264, 400, 536, 664, 792, 920, 1064, 1192, 1320, 1448, 1576, 1704, 1864, 1992 },
+	/* MCS-1 (QPSK, 1/2): */
+	{ 32, 296, 552, 824, 1096, 1352, 1608, 1864, 2104, 2360, 2616, 2872, 3128, 3384, 3704, 3960 },
+	/* MCS-2 (16-QAM, 1/2): */
+	{ 56, 456, 856, 1256, 1640, 2024, 2360, 2744, 3192, 3576, 3960, 4320, 4768, 5152, 5536, -1 },
+	/* MCS-3 (16-QAM, 3/4): */
+	{ 88, 616, 1128, 1672, 2168, 2680, 3192, 3704, 4256, 4768, 5280, -1, -1, -1, -1, -1 },
+	/* MCS-4 (64-QAM, 3/4): */
+	{ 144, 936, 1736, 2488, 3256, 4024, 4832, 5600, -1, -1, -1, -1, -1, -1, -1, -1 },
+};
+
+static int calc_dect_packet_length(size_t data_len, uint8_t mcs,
+				   uint8_t *out_len_type, uint8_t *out_pkt_len)
+{
+	if (mcs > 4) {
+		mcs = 0;
+	}
+
+	size_t data_bits = data_len * 8;
+
+	/* 1. Try Subslot mode (indices 0..7 = 1..8 subslots).
+	 * We require at least index 3 (4 subslots = 50 B at MCS-0) for robust preamble/header margin.
+	 */
+	for (uint8_t i = 3; i < 8; i++) {
+		int16_t tbs = dect_tbs_table[mcs][i];
+		if (tbs > 0 && (size_t)tbs >= data_bits) {
+			*out_len_type = 0; /* Subslots */
+			*out_pkt_len = i;
+			return 0;
+		}
+	}
+
+	/* 2. Try Slot mode (slots 0..7 = 1..8 slots, mapping to subslot table indices 2*s + 1) */
+	for (uint8_t s = 0; s < 8; s++) {
+		uint8_t subslot_idx = (s * 2) + 1;
+		int16_t tbs = dect_tbs_table[mcs][subslot_idx];
+		if (tbs > 0 && (size_t)tbs >= data_bits) {
+			*out_len_type = 1; /* Slots */
+			*out_pkt_len = s;
+			return 0;
+		}
+	}
+
+	return -EMSGSIZE;
+}
+
 static int transmit(uint32_t handle, void *data, size_t data_len, uint8_t tx_power, uint8_t mcs)
 {
+	uint8_t len_type = 0;
+	uint8_t pkt_len = 0x03;
+
+	int rc = calc_dect_packet_length(data_len, mcs, &len_type, &pkt_len);
+	if (rc != 0) {
+		LOG_ERR("data_len %u exceeds max DECT TBS for mcs %u", (unsigned)data_len, mcs);
+		return rc;
+	}
+
 	struct phy_ctrl_field_common header = {
 		.header_format = 0x0,
-		.packet_length_type = 0x0,
-		.packet_length = 0x03,
+		.packet_length_type = len_type,
+		.packet_length = pkt_len,
 		.short_network_id = (CONFIG_NETWORK_ID & 0xff),
 		.transmitter_id_hi = (topo_device_id() >> 8),
 		.transmitter_id_lo = (topo_device_id() & 0xff),
@@ -418,8 +517,13 @@ static int transmit(uint32_t handle, void *data, size_t data_len, uint8_t tx_pow
 	return nrf_modem_dect_phy_tx(&tx_op_params);
 }
 
-static int receive(uint32_t handle)
+static int receive_slice(uint32_t handle, uint32_t duration_ms)
 {
+	uint64_t ticks = (uint64_t)duration_ms * NRF_MODEM_DECT_MODEM_TIME_TICK_RATE_KHZ;
+	if (ticks > UINT32_MAX) {
+		ticks = UINT32_MAX;
+	}
+
 	struct nrf_modem_dect_phy_rx_params rx_op_params = {
 		.start_time = 0,
 		.handle = handle,
@@ -429,14 +533,34 @@ static int receive(uint32_t handle)
 		.link_id = NRF_MODEM_DECT_PHY_LINK_UNSPECIFIED,
 		.rssi_level = -60,
 		.carrier = CONFIG_CARRIER,
-		.duration = CONFIG_RX_PERIOD_S * MSEC_PER_SEC *
-			    NRF_MODEM_DECT_MODEM_TIME_TICK_RATE_KHZ,
+		.duration = (uint32_t)ticks,
 		.filter.short_network_id = CONFIG_NETWORK_ID & 0xff,
 		.filter.is_short_network_id_used = 1,
 		.filter.receiver_identity = CONFIG_TOPO_DEST_RECEIVER_ID,
 	};
 
-	return nrf_modem_dect_phy_rx(&rx_op_params);
+	k_sem_reset(&rx_sem);
+	g_rx_handle = handle;
+	int err = 0;
+	for (int retry = 0; retry < 5; retry++) {
+		err = nrf_modem_dect_phy_rx(&rx_op_params);
+		if (err == 0) {
+			g_rx_active = true;
+			return 0;
+		}
+		if (err == -EBUSY || err == -EAGAIN) {
+			k_sleep(K_MSEC(1));
+			continue;
+		}
+		break;
+	}
+	return err;
+}
+
+static int receive(uint32_t handle)
+{
+	/* Safe continuous 1,000 ms slice */
+	return receive_slice(handle, 1000);
 }
 
 static void resolve_device_id(void)
@@ -546,8 +670,11 @@ static int send_data(uint32_t tx_handle, uint8_t *tx_buf)
 	pkt->tx_time_ms = (uint32_t)k_uptime_get();
 	topo_packet_finalize(pkt);
 
-	LOG_INF("TX: node=%u type=DATA seq=%u src=%u dst=%u hop=0 size=%u time=%u",
-		topo_device_id(), pkt->sequence, pkt->src, pkt->dst, tx_len, pkt->tx_time_ms);
+	uint64_t tx_time_us = (uint64_t)k_ticks_to_us_near64(k_uptime_ticks());
+
+	LOG_INF("TX: node=%u type=DATA seq=%u src=%u dst=%u hop=0 size=%u time=%u time_us=%llu",
+		topo_device_id(), pkt->sequence, pkt->src, pkt->dst, tx_len, pkt->tx_time_ms,
+		(unsigned long long)tx_time_us);
 
 	err = send_buf(tx_handle, tx_buf, tx_len);
 	if (err) {
@@ -611,9 +738,10 @@ static bool maybe_hello(uint32_t tx_handle, uint8_t *tx_buf)
 		return false;
 	}
 
+	k_sem_reset(&tx_sem);
 	if (send_hello(tx_handle, tx_buf) == 0) {
 		last_hello_ms = now;
-		k_sem_take(&operation_sem, K_FOREVER);
+		k_sem_take(&tx_sem, K_MSEC(200));
 		return true;
 	}
 	return false;
@@ -625,10 +753,16 @@ static int drain_forwards(uint32_t tx_handle, uint8_t *tx_buf)
 	int n = 0;
 
 	while (topo_fwd_dequeue(&item)) {
+		/* Inter-frame guard (3 ms) allows source burst to clear and receiver LNA/AGC to settle */
+		k_sleep(K_MSEC(3));
+		k_sem_reset(&tx_sem);
 		if (send_forward(tx_handle, tx_buf, &item.pkt)) {
 			return -EIO;
 		}
-		k_sem_take(&operation_sem, K_FOREVER);
+		int sem_err = k_sem_take(&tx_sem, K_MSEC(200));
+		if (sem_err != 0) {
+			LOG_WRN("FORWARD TX timeout (%d)", sem_err);
+		}
 		n++;
 		if (!topo_is_running()) {
 			break;
@@ -685,13 +819,17 @@ static void radio_thread_fn(void *p1, void *p2, void *p3)
 			}
 
 			if (role == TOPO_ROLE_SOURCE_V) {
+				k_sem_reset(&tx_sem);
 				err = send_data(tx_handle, tx_buf);
 				if (err) {
 					topo_request_stop();
 					topo_print_summary("tx_error");
 					break;
 				}
-				k_sem_take(&operation_sem, K_FOREVER);
+				int sem_err = k_sem_take(&tx_sem, K_MSEC(200));
+				if (sem_err != 0) {
+					LOG_WRN("DATA TX timeout (%d)", sem_err);
+				}
 
 				topo_runtime_lock();
 				sent = rt->data_sent;
@@ -711,15 +849,48 @@ static void radio_thread_fn(void *p1, void *p2, void *p3)
 				break;
 			}
 
-			/* All roles listen so neighbors / delivers / forwards can arrive. */
-			err = receive(rx_handle);
-			if (err) {
-				LOG_ERR("Reception failed, err %d", err);
-				topo_request_stop();
-				topo_print_summary("rx_error");
-				break;
+			uint32_t rx_win = 0;
+			enum topo_fwd_mode fmode = TOPO_FWD_CUT_THROUGH;
+			uint32_t batch_ms = 2000;
+
+			topo_runtime_lock();
+			rx_win = rt->rx_window_ms;
+			fmode = rt->fwd_mode;
+			batch_ms = rt->fwd_batch_ms;
+			topo_runtime_unlock();
+
+			if (role == TOPO_ROLE_SOURCE_V) {
+				if (rx_win > 0) {
+					err = receive_slice(rx_handle, rx_win);
+					if (err) {
+						LOG_ERR("Reception failed, err %d", err);
+						topo_request_stop();
+						topo_print_summary("rx_error");
+						break;
+					}
+					k_sem_take(&rx_sem, K_FOREVER);
+				}
+			} else if (role == TOPO_ROLE_RELAY_V) {
+				uint32_t slice = (fmode == TOPO_FWD_BATCH) ? batch_ms : 1000;
+				err = receive_slice(rx_handle, slice);
+				if (err) {
+					LOG_ERR("Reception failed, err %d", err);
+					topo_request_stop();
+					topo_print_summary("rx_error");
+					break;
+				}
+				k_sem_take(&rx_sem, K_FOREVER);
+			} else { /* TOPO_ROLE_SINK_V */
+				/* Sink runs continuous 1,000 ms slices with zero idle gap */
+				err = receive_slice(rx_handle, 1000);
+				if (err) {
+					LOG_ERR("Reception failed, err %d", err);
+					topo_request_stop();
+					topo_print_summary("rx_error");
+					break;
+				}
+				k_sem_take(&rx_sem, K_FOREVER);
 			}
-			k_sem_take(&operation_sem, K_FOREVER);
 
 			if (!topo_is_running()) {
 				topo_print_summary("stop");
@@ -734,7 +905,11 @@ static void radio_thread_fn(void *p1, void *p2, void *p3)
 				break;
 			}
 
-			if (role == TOPO_ROLE_SOURCE_V && interval > 0) {
+			if (role == TOPO_ROLE_SOURCE_V) {
+				/* Safe floor of 10 ms to prevent channel saturation & thread starvation */
+				if (interval < 10) {
+					interval = 10;
+				}
 				k_sleep(K_MSEC(interval));
 			}
 		}

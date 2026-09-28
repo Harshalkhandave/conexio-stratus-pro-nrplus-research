@@ -52,6 +52,7 @@ static void reset_stats_locked(void)
 	rt.rssi_max_x2 = INT32_MIN;
 	rt.rssi_sum_x2 = 0;
 	rt.rssi_n = 0;
+	rt.q_depth_peak = 0;
 	memset(rt.seen, 0, sizeof(rt.seen));
 	/* Keep neighbors across start so Exp1 map persists; clear on demand later if needed. */
 }
@@ -77,6 +78,10 @@ void topo_runtime_restore_defaults(void)
 	rt.mcs = (uint8_t)CONFIG_MCS;
 	rt.packet_size = (uint16_t)CONFIG_TOPO_PACKET_SIZE;
 	rt.dedup = IS_ENABLED(CONFIG_TOPO_DEDUP);
+	rt.source_rx = true;
+	rt.rx_window_ms = 2000;
+	rt.fwd_mode = TOPO_FWD_CUT_THROUGH;
+	rt.fwd_batch_ms = 2000;
 	memset(rt.neigh, 0, sizeof(rt.neigh));
 	reset_stats_locked();
 	k_mutex_unlock(&rt_lock);
@@ -133,6 +138,34 @@ bool topo_role_from_str(const char *s, enum topo_role *out)
 	}
 	if (strcmp(s, "sink") == 0 || strcmp(s, "gateway") == 0) {
 		*out = TOPO_ROLE_SINK_V;
+		return true;
+	}
+	return false;
+}
+
+const char *topo_fwd_mode_str(enum topo_fwd_mode mode)
+{
+	switch (mode) {
+	case TOPO_FWD_CUT_THROUGH:
+		return "cut_through";
+	case TOPO_FWD_BATCH:
+		return "batch";
+	default:
+		return "unknown";
+	}
+}
+
+bool topo_fwd_mode_from_str(const char *s, enum topo_fwd_mode *out)
+{
+	if (!s || !out) {
+		return false;
+	}
+	if (strcmp(s, "cut_through") == 0 || strcmp(s, "immediate") == 0) {
+		*out = TOPO_FWD_CUT_THROUGH;
+		return true;
+	}
+	if (strcmp(s, "batch") == 0) {
+		*out = TOPO_FWD_BATCH;
 		return true;
 	}
 	return false;
@@ -293,6 +326,10 @@ bool topo_fwd_enqueue(const struct topo_packet *pkt)
 		return false;
 	}
 	rt.fwd_enqueue++;
+	uint16_t depth = (uint16_t)k_msgq_num_used_get(&fwd_q);
+	if (depth > rt.q_depth_peak) {
+		rt.q_depth_peak = depth;
+	}
 	k_mutex_unlock(&rt_lock);
 	return true;
 }
@@ -316,17 +353,18 @@ void topo_print_status(void)
 	printk("  carrier=%d net=0x%x\n", CONFIG_CARRIER, CONFIG_NETWORK_ID);
 	printk("  interval_ms=%u hello_ms=%u count=%u (0=forever)\n", snap.tx_interval_ms,
 	       snap.hello_interval_ms, snap.tx_count);
-	printk("  power=%u mcs=%u size=%u dedup=%d\n", snap.tx_power, snap.mcs, snap.packet_size,
-	       snap.dedup ? 1 : 0);
+	printk("  power=%u mcs=%u size=%u dedup=%d source_rx=%d rx_win=%u fwd=%s\n", snap.tx_power, snap.mcs, snap.packet_size,
+	       snap.dedup ? 1 : 0, snap.source_rx ? 1 : 0, snap.rx_window_ms,
+	       topo_fwd_mode_str(snap.fwd_mode));
 #if IS_ENABLED(CONFIG_TOPO_PERSIST)
 	printk("  autostart=%d persist=%d\n", topo_autostart_get() ? 1 : 0,
 	       topo_persist_present() ? 1 : 0);
 #endif
 	printk("  seq_next=%u data_sent=%u hello_sent=%u fwd_sent=%u\n", snap.sequence,
 	       snap.data_sent, snap.hello_sent, snap.fwd_sent);
-	printk("  rx_ok=%u rx_fail=%u deliver=%u fwd_dup=%u fwd_ttl=%u fwd_qfull=%u\n",
+	printk("  rx_ok=%u rx_fail=%u deliver=%u fwd_dup=%u fwd_ttl=%u fwd_qfull=%u q_peak=%u\n",
 	       snap.rx_ok, snap.rx_fail, snap.deliver_ok, snap.fwd_drop_dup, snap.fwd_drop_ttl,
-	       snap.fwd_drop_full);
+	       snap.fwd_drop_full, snap.q_depth_peak);
 }
 
 bool topo_should_autostart(void)
@@ -396,9 +434,9 @@ void topo_print_summary(const char *reason)
 	}
 
 	printk("SUMMARY: role=%s reason=%s device_id=%u dest=%u data_sent=%u hello_sent=%u "
-	       "fwd_sent=%u rx_ok=%u rx_fail=%u deliver=%u "
+	       "fwd_sent=%u rx_ok=%u rx_fail=%u deliver=%u q_peak=%u "
 	       "rssi_min=%d.%d rssi_avg=%d.%d rssi_max=%d.%d\n",
 	       topo_role_str(snap.role), reason, g_device_id, snap.dest_id, snap.data_sent,
-	       snap.hello_sent, snap.fwd_sent, snap.rx_ok, snap.rx_fail, snap.deliver_ok, min_i,
-	       min_f, avg_i, avg_f, max_i, max_f);
+	       snap.hello_sent, snap.fwd_sent, snap.rx_ok, snap.rx_fail, snap.deliver_ok, snap.q_depth_peak,
+	       min_i, min_f, avg_i, avg_f, max_i, max_f);
 }

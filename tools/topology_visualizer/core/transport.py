@@ -112,11 +112,23 @@ class SerialHub(QObject):
             except Exception as exc:  # noqa: BLE001
                 return False, str(exc)
             time.sleep(0.1)
+            if hasattr(ser, "_socket") and ser._socket is not None:
+                try:
+                    import socket as _socket
+
+                    ser._socket.setsockopt(_socket.IPPROTO_TCP, _socket.TCP_NODELAY, 1)
+                except Exception:  # noqa: BLE001
+                    pass
             if not is_url(port):
                 try:
                     ser.reset_input_buffer()
                 except Exception:  # noqa: BLE001
                     pass
+            try:
+                ser.write(b"\r\n")
+                ser.flush()
+            except Exception:  # noqa: BLE001
+                pass
             self._sers[port] = ser
             stop = threading.Event()
             self._stop[port] = stop

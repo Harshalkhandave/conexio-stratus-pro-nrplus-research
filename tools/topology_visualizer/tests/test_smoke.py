@@ -54,10 +54,10 @@ def test_parsing() -> None:
         "  role=relay running=1 device_id=22 dest_id=0 max_hops=4",
         "  carrier=1 net=0x1a2b",
         "  interval_ms=1000 hello_ms=2000 count=0 (0=forever)",
-        "  power=11 mcs=1 size=32 dedup=1",
+        "  power=11 mcs=1 size=32 dedup=1 source_rx=1 rx_win=2000 fwd=cut_through",
         "  autostart=1 persist=1",
         "  seq_next=5 data_sent=4 hello_sent=2 fwd_sent=3",
-        "  rx_ok=9 rx_fail=1 deliver=0 fwd_dup=1 fwd_ttl=0 fwd_qfull=0",
+        "  rx_ok=9 rx_fail=1 deliver=0 fwd_dup=1 fwd_ttl=0 fwd_qfull=0 q_peak=2",
     ]
     acc = StatusAccumulator()
     snap = None
@@ -68,22 +68,59 @@ def test_parsing() -> None:
         check("status role/id", snap.role == "relay" and snap.device_id == 22)
         check("status running flag", snap.running is True)
         check("status dedup flag", snap.dedup is True)
+        check("status source_rx flag", snap.source_rx is True)
+        check("status rx_win", snap.rx_window_ms == 2000)
+        check("status fwd_mode", snap.fwd_mode == "cut_through")
         check("status autostart + persist", snap.autostart is True and snap.persist is True)
         check("status counters", snap.rx_ok == 9 and snap.fwd_sent == 3)
+        check("status q_peak", snap.q_peak == 2)
+
+    # Test status block with interleaved asynchronous logs
+    interleaved_block = [
+        "exp status:",
+        "  role=source running=1 device_id=14402 dest_id=56992 max_hops=1",
+        "TX: node=14402 type=DATA seq=58 src=14402 dst=56992 hop=0 size=64 time=1518359 time_us=1518359772",
+        "--- 3 messages dropped ---",
+        "  carrier=0 net=0x1234",
+        "  interval_ms=10 hello_ms=1000 count=0 (0=forever)",
+        "RX: node=44720 type=DATA seq=58 src=14402 dst=56992 prev=14402 hop=0 rssi=-68.0 time=7968600 time_us=7968600739",
+        "FORWARD_Q: node=44720 seq=58 src=14402 dst=56992 prev=44720 hop=1",
+        "  power=0 mcs=0 size=64 dedup=0 source_rx=0 rx_win=0 fwd=FLOOD",
+        "  autostart=0 persist=1",
+        "  seq_next=59 data_sent=58 hello_sent=1 fwd_sent=0",
+        "  rx_ok=0 rx_fail=0 deliver=0 fwd_dup=0 fwd_ttl=0 fwd_qfull=0 q_peak=0",
+    ]
+    acc_intl = StatusAccumulator()
+    snap_intl = None
+    for line in interleaved_block:
+        res = acc_intl.feed(line)
+        if res:
+            snap_intl = res
+    check("interleaved status parsed", snap_intl is not None and snap_intl.seq_next == 59 and snap_intl.device_id == 14402)
 
     deliver = parse_line(
-        "[10:11:12.130] <inf> app: DELIVER: node=33 seq=7 src=11 prev=22 hops=1 rssi=-71.2 time=99"
+        "[10:11:12.130] <inf> app: DELIVER: node=33 seq=7 src=11 prev=22 hops=1 rssi=-71.2 time=99 time_us=99000123"
     )
     check("deliver parsed", deliver is not None and deliver.kind == "deliver")
     if deliver:
         check("deliver fields", deliver.src == 11 and deliver.prev == 22 and deliver.hops == 1)
         check("deliver rssi", abs((deliver.rssi or 0) + 71.2) < 0.01)
+        check("deliver time_us", deliver.time_us == 99000123)
 
-    tx = parse_line("<inf> app: TX: node=11 type=DATA seq=3 src=11 dst=33 hop=0 size=32 time=12")
-    check("tx parsed", tx is not None and tx.kind == "tx" and tx.dst == 33)
+    tx = parse_line("<inf> app: TX: node=11 type=DATA seq=3 src=11 dst=33 hop=0 size=32 time=12 time_us=12000456")
+    check("tx parsed", tx is not None and tx.kind == "tx" and tx.dst == 33 and tx.time_us == 12000456)
 
     dedup = parse_line("dedup=1 (RAM — exp save to persist)")
     check("dedup ack parsed", dedup is not None and dedup.kind == "ack")
+
+    source_rx = parse_line("source_rx=0 (RAM — exp save to persist)")
+    check("source_rx ack parsed", source_rx is not None and source_rx.kind == "ack")
+
+    rx_win_ack = parse_line("rx_window=500 ms (source_rx=1) (RAM — exp save to persist)")
+    check("rx_window ack parsed", rx_win_ack is not None and rx_win_ack.kind == "ack")
+
+    fwd_mode_ack = parse_line("fwd_mode=cut_through (RAM — exp save to persist)")
+    check("fwd_mode ack parsed", fwd_mode_ack is not None and fwd_mode_ack.kind == "ack")
 
     autostart = parse_line("autostart=1 (RAM -> exp save to persist across reset)")
     check("autostart ack parsed", autostart is not None and autostart.autostart is True)
@@ -104,6 +141,56 @@ def test_parsing() -> None:
     check("forward enqueue kept separate", queued is not None and queued.kind == "forward_q")
     sent = parse_line("<inf> app: FORWARD: node=22 seq=3 src=11 dst=33 prev=22 hop=1 size=18")
     check("forward transmit parsed", sent is not None and sent.kind == "forward")
+
+    drop_ttl = parse_line("<inf> app: FORWARD_DROP: node=22 seq=3 src=11 reason=ttl hop=5 max=4")
+    check("forward_drop ttl parsed", drop_ttl is not None and drop_ttl.kind == "forward_drop" and drop_ttl.msg_type == "ttl" and drop_ttl.hops == 5)
+    drop_qfull = parse_line("<inf> app: FORWARD_DROP: node=22 seq=3 reason=queue_full")
+    check("forward_drop qfull parsed", drop_qfull is not None and drop_qfull.kind == "forward_drop" and drop_qfull.msg_type == "queue_full")
+    from core.parse_topo import severity
+    check("forward drop severity is warn", severity("FORWARD_DROP: node=22 reason=ttl") == "warn")
+
+    deliv_hop = parse_line("<inf> app: DELIVER: node=33 seq=7 src=11 prev=22 hop=2 rssi=-70.0")
+    check("deliver hop singular parsed", deliv_hop is not None and deliv_hop.hops == 2)
+    tx_hops = parse_line("<inf> app: TX: node=11 type=DATA seq=3 src=11 dst=33 hops=0 size=32")
+    check("tx hops plural parsed", tx_hops is not None and tx_hops.hops == 0)
+
+
+def test_model_reset_and_events() -> None:
+    from core.model import SessionModel
+    from core.parse_topo import parse_line
+
+    print("model metrics reset and drop/summary events")
+    m = SessionModel()
+    m.add_node("COM1")
+    m.add_node("COM2")
+    m.nodes["COM1"].role = "source"
+    m.nodes["COM2"].role = "sink"
+
+    m.apply_event("COM1", parse_line("<inf> app: TX: node=11 type=DATA seq=1 src=11 dst=33 hop=0 size=32"))
+    m.apply_event("COM1", parse_line("<inf> app: TX: node=11 type=DATA seq=2 src=11 dst=33 hop=0 size=32"))
+    m.apply_event("COM2", parse_line("<inf> app: RX: node=33 type=DATA seq=1 src=11 dst=33 prev=11 hop=0 rssi=-65.0"))
+    m.apply_event("COM2", parse_line("<inf> app: DELIVER: node=33 seq=1 src=11 prev=11 hops=0 rssi=-65.0"))
+
+    check("traffic recorded in model", m.nodes["COM1"].tx_count == 2 and m.nodes["COM2"].deliver_count == 1)
+    k = m.kpis()
+    check("kpis show pdr", k["pdr"] == 50.0 and k["sent"] == 2 and k["delivered"] == 1)
+
+    m.apply_event("COM1", parse_line("<inf> app: FORWARD_DROP: node=11 seq=3 reason=ttl hop=5 max=4"))
+    check("forward_drop ttl incremented", m.nodes["COM1"].fwd_ttl == 1)
+    m.apply_event("COM1", parse_line("<inf> app: FORWARD_DROP: node=11 seq=4 reason=queue_full"))
+    check("forward_drop qfull incremented", m.nodes["COM1"].fwd_qfull == 1)
+    m.apply_event("COM1", parse_line("<inf> app: FORWARD_DROP: duplicate from 11 seq 1"))
+    check("forward_drop dup incremented", m.nodes["COM1"].fwd_dup == 1)
+
+    m.reset_metrics()
+    check("counters zeroed after reset", m.nodes["COM1"].tx_count == 0 and m.nodes["COM2"].deliver_count == 0)
+    check("drop counters zeroed", m.nodes["COM1"].fwd_ttl == 0 and m.nodes["COM1"].fwd_qfull == 0 and m.nodes["COM1"].fwd_dup == 0)
+    check("pdr cleared after reset", m.kpis()["pdr"] is None and m.kpis()["sent"] == 0 and m.kpis()["delivered"] == 0)
+    check("anims cleared", len(m.anims) == 0)
+
+    sum_ev = parse_line("SUMMARY: role=source reason=completed device_id=11 dest=33 data_sent=50 hello_sent=10 fwd_sent=0 rx_ok=5 rx_fail=0 deliver=0 q_peak=1")
+    m.apply_event("COM1", sum_ev)
+    check("summary counters synced to model", m.nodes["COM1"].data_sent == 50 and m.nodes["COM1"].tx_count == 50 and m.nodes["COM1"].hello_sent == 10)
 
 
 # ------------------------------------------------------------- relayed traffic
@@ -245,6 +332,56 @@ class Harness:
         shutil.rmtree(self.tmp, ignore_errors=True)
 
 
+def test_source_rx_and_flash_lifecycle() -> None:
+    from mock.board import BoardConfig, MockBoard, MockRadio
+
+    print("source_rx lifecycle and flash persistence")
+    radio = MockRadio()
+    board = MockBoard(cfg=BoardConfig(device_id=11, role="source", dest_id=33), radio=radio)
+    radio.boards.append(board)
+
+    # 1. Default is source_rx = True
+    check("initial source_rx is true", board.cfg.source_rx is True)
+
+    # 2. Turn off source_rx
+    board.handle("exp sett source_rx off")
+    check("source_rx turned off", board.cfg.source_rx is False)
+
+    # 3. Changing role resets source_rx back to True (does not remember off)
+    board.handle("exp role relay")
+    check("role change to relay resets source_rx to true", board.cfg.role == "relay" and board.cfg.source_rx is True)
+
+    # 4. Changing back to source still has source_rx as True (must turn off again)
+    board.handle("exp role source")
+    check("role change back to source keeps source_rx as true", board.cfg.role == "source" and board.cfg.source_rx is True)
+
+    # 5. User turns source_rx off again and saves to flash
+    board.handle("exp sett source_rx off")
+    board.handle("exp save")
+    check("saved profile has source_rx false", board.saved is not None and board.saved.get("source_rx") is False)
+
+    # 6. Role changed in RAM without saving
+    board.handle("exp role relay")
+    check("RAM role is relay with source_rx true", board.cfg.role == "relay" and board.cfg.source_rx is True)
+
+    # 7. Loading from flash restores role=source and source_rx=False
+    board.handle("exp load")
+    check("loaded profile restores source_rx false", board.cfg.role == "source" and board.cfg.source_rx is False)
+
+    # 8. Factory reset clears profile and restores source_rx=True
+    board.handle("exp reset")
+    check("reset alias restores source_rx true", board.cfg.source_rx is True and board.saved is None)
+
+    # 9. Test rx_window and fwd_mode shell commands and aliases
+    board.handle("exp set rx_window 350")
+    check("exp set rx_window updates rx_window_ms", board.cfg.rx_window_ms == 350 and board.cfg.source_rx is True)
+    board.handle("exp sett rx_window 0")
+    check("rx_window 0 turns source_rx off", board.cfg.rx_window_ms == 0 and board.cfg.source_rx is False)
+    board.handle("exp set fwd_mode batch")
+    check("exp set fwd_mode updates fwd_mode", board.cfg.fwd_mode == "batch")
+    board.handle("exp factory")
+
+
 def test_app(shots: Path | None, show: bool) -> None:
     h = Harness(shots, show)
     model = h.window.model
@@ -265,6 +402,30 @@ def test_app(shots: Path | None, show: bool) -> None:
         h.pump(0.25)
         check("inspector follows selection", h.window.inspector.current_port() == source)
         check("form is clean after load", not h.window.inspector.is_dirty())
+        check("source_rx is enabled for source role", h.window.inspector.chk_source_rx.isEnabled())
+        h.window.select_node(sink)
+        h.wait_for(lambda: not h.window.engine.busy(sink))
+        check("source_rx is frozen for sink role", not h.window.inspector.chk_source_rx.isEnabled() and h.window.inspector.chk_source_rx.isChecked())
+        h.window.select_node(source)
+        h.wait_for(lambda: not h.window.engine.busy(source) and h.window.inspector.chk_source_rx.isEnabled())
+        check("source_rx is enabled again when switching back to source", h.window.inspector.chk_source_rx.isEnabled())
+        h.window.inspector.cmb_role.setCurrentText("relay")
+        h.pump(0.1)
+        check("source_rx freezes when role changed to relay", not h.window.inspector.chk_source_rx.isEnabled() and h.window.inspector.chk_source_rx.isChecked())
+        h.window.inspector.cmb_role.setCurrentText("source")
+        h.pump(0.1)
+        check("source_rx auto-enabled when role changed back to source", h.window.inspector.chk_source_rx.isEnabled() and h.window.inspector.chk_source_rx.isChecked())
+        # Verify that toggling through roles without applying preserves custom source_rx=False:
+        h.window.inspector.chk_source_rx.setChecked(False)
+        h.window.inspector._on_source_rx_clicked(False)
+        h.window.inspector.cmb_role.setCurrentText("sink")
+        h.pump(0.1)
+        check("source_rx frozen on sink", not h.window.inspector.chk_source_rx.isEnabled() and h.window.inspector.chk_source_rx.isChecked())
+        h.window.inspector.cmb_role.setCurrentText("source")
+        h.pump(0.1)
+        check("source_rx preserved as False when cycling back to source without applying", h.window.inspector.chk_source_rx.isEnabled() and not h.window.inspector.chk_source_rx.isChecked())
+        h.window.inspector._revert()  # noqa: SLF001
+        h.pump(0.1)
         h.window.auto_layout()
         h.pump(0.2)
         h.shot("01_connected_light")
@@ -274,14 +435,18 @@ def test_app(shots: Path | None, show: bool) -> None:
         h.window.store.set("confirm_run", False)
         h.window.inspector.spins["interval"].setValue(500)
         h.window.inspector.spins["power"].setValue(9)
+        h.window.inspector.spins["size"].setValue(128)
+        h.window.inspector.chk_source_rx.setChecked(False)
         check("form marked dirty", h.window.inspector.is_dirty())
         h.window.inspector._apply()  # noqa: SLF001 - same path as the Apply button
         applied = h.wait_for(
             lambda: model.nodes[source].interval_ms == 500
             and model.nodes[source].power == 9
+            and model.nodes[source].size == 128
+            and model.nodes[source].source_rx is False
         )
         check("settings applied and verified", applied,
-              f"interval={model.nodes[source].interval_ms} power={model.nodes[source].power}")
+              f"interval={model.nodes[source].interval_ms} power={model.nodes[source].power} size={model.nodes[source].size} source_rx={model.nodes[source].source_rx}")
         released = h.wait_for(lambda: not h.window.overlay.isVisible(), timeout=6)
         check("busy overlay released", released)
         check("form clean after apply", not h.window.inspector.is_dirty())
@@ -300,6 +465,8 @@ def test_app(shots: Path | None, show: bool) -> None:
         check("sink delivers packets", delivered, f"deliver={model.nodes[sink].deliver_count}")
         check("relay forwards traffic",
               any(n.fwd_count > 0 for n in model.nodes.values() if n.role == "relay"))
+        check("relay recorded queue peak",
+              any((n.q_peak or 0) >= 1 for n in model.nodes.values() if n.role == "relay"))
         check("path classified via relay", model.path_class == "via_relay", model.path_class)
         check("links discovered", len(model.links) >= 2, str(list(model.links)))
         src_id = model.nodes[source].device_id
@@ -366,6 +533,16 @@ def test_app(shots: Path | None, show: bool) -> None:
         check("snapshot exported", bool(snap_path and snap_path.exists()))
         h.window.toggle_capture()
         check("capture stopped", not h.window.capture.active)
+
+        print("capture toggle with reset prompt")
+        orig_prompt = h.mw.prompt_capture_session
+        h.mw.prompt_capture_session = lambda *a, **k: ("smoke_reset_run", True)
+        model.nodes[source].tx_count = 88
+        h.window.toggle_capture()
+        check("toggle_capture started and reset metrics", h.window.capture.active and model.nodes[source].tx_count == 0)
+        h.window.toggle_capture()
+        check("toggle_capture stopped second session", not h.window.capture.active)
+        h.mw.prompt_capture_session = orig_prompt
 
         print("stop")
         h.window.stop_all()
@@ -511,8 +688,10 @@ def main(argv: list[str] | None = None) -> int:
 
     start = time.monotonic()
     test_parsing()
+    test_model_reset_and_events()
     test_relay_paths()
     test_capture_files()
+    test_source_rx_and_flash_lifecycle()
     test_app(args.shots, args.show)
     took = time.monotonic() - start
 

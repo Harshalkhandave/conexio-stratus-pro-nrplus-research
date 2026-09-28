@@ -39,6 +39,11 @@ ROLE_HINT = {
     "relay": "Router — forwards traffic it is not addressed to",
     "sink": "Gateway — final destination, reports delivery",
 }
+ROLE_FIELDS = {
+    "source": {"role", "dest", "interval", "count", "size", "max_hops", "source_rx", "rx_window", "power", "mcs", "hello"},
+    "relay": {"role", "size", "fwd_mode", "dedup", "max_hops", "power", "mcs", "hello"},
+    "sink": {"role", "dedup", "power", "mcs", "hello"},
+}
 
 
 class Sparkline(QWidget):
@@ -117,6 +122,7 @@ class NodeInspector(QFrame):
         self._node: Optional[NodeState] = None
         self._baseline: dict[str, object] = {}
         self._loading = False
+        self._source_rx_user_val: bool = True
         # Autostart edits are held here until the operator presses Save to flash.
         self._pending_autostart: dict[str, bool] = {}
 
@@ -218,6 +224,7 @@ class NodeInspector(QFrame):
         outer.setSpacing(0)
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         holder = QWidget()
         lay = QVBoxLayout(holder)
         lay.setContentsMargins(0, 0, 6, 0)
@@ -232,7 +239,7 @@ class NodeInspector(QFrame):
             ("rssi", "Last RSSI"),
             ("quality", "Link quality"),
             ("carrier", "Carrier / network"),
-            ("dedup", "Relay dedup"),
+            ("dedup", "Duplicate filter"),
             ("route", "Last route change"),
             ("seen", "Last line"),
         ):
@@ -253,6 +260,7 @@ class NodeInspector(QFrame):
             ("deliver", "Delivered"),
             ("loss", "Packet loss"),
             ("drops", "Dup / TTL / queue"),
+            ("q_peak", "Queue peak"),
         ):
             self.grid_counters.add(key, label)
         lay.addWidget(self.grid_counters)
@@ -285,6 +293,7 @@ class NodeInspector(QFrame):
 
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         holder = QWidget()
         lay = QVBoxLayout(holder)
         lay.setContentsMargins(0, 0, 6, 0)
@@ -293,29 +302,27 @@ class NodeInspector(QFrame):
         self.cmb_role = NoWheelComboBox()
         for role in ROLES:
             self.cmb_role.addItem(role)
-        self.cmb_role.currentTextChanged.connect(self._on_form_changed)
+        self.cmb_role.currentTextChanged.connect(self._on_role_changed)
         lay.addWidget(field_row("Role", self.cmb_role))
         self.role_hint = QLabel("")
         self.role_hint.setObjectName("Faint")
         self.role_hint.setWordWrap(True)
         lay.addWidget(self.role_hint)
-        self.cmb_role.currentTextChanged.connect(
-            lambda role: self.role_hint.setText(ROLE_HINT.get(role, ""))
-        )
 
         grid = QGridLayout()
         grid.setHorizontalSpacing(10)
         grid.setVerticalSpacing(10)
         self.spins: dict[str, NoWheelSpinBox] = {}
+        self.row_widgets: dict[str, QWidget] = {}
         specs = (
             ("dest", "Destination id", 0, 65535, ""),
             ("max_hops", "Max hops", 1, 16, ""),
-            ("interval", "TX interval", 10, 600000, " ms"),
+            ("interval", "TX interval", 5, 600000, " ms"),
             ("hello", "Hello interval", 0, 600000, " ms"),
             ("count", "Packet count", 0, 1000000, ""),
-            ("power", "TX power", 0, 13, ""),
+            ("power", "TX power", 0, 13, " dBm"),
             ("mcs", "MCS", 0, 7, ""),
-            ("size", "Payload", 8, 32, " B"),
+            ("size", "Payload", 18, 250, " B"),
         )
         for index, (key, label, lo, hi, suffix) in enumerate(specs):
             spin = NoWheelSpinBox()
@@ -325,15 +332,48 @@ class NodeInspector(QFrame):
             spin.setMinimumWidth(120)
             spin.valueChanged.connect(self._on_form_changed)
             self.spins[key] = spin
-            grid.addWidget(field_row(label, spin), index // 2, index % 2)
+            row = field_row(label, spin)
+            self.row_widgets[key] = row
+            grid.addWidget(row, index // 2, index % 2)
         lay.addLayout(grid)
 
-        self.chk_dedup = CheckBox("Relay duplicate packet filter (dedup)")
+        self.cmb_fwd_mode = NoWheelComboBox()
+        self.cmb_fwd_mode.addItem("cut_through")
+        self.cmb_fwd_mode.addItem("batch")
+        self.cmb_fwd_mode.currentTextChanged.connect(self._on_form_changed)
+        self.row_fwd_mode = field_row("Forwarding mode (relay)", self.cmb_fwd_mode)
+        lay.addWidget(self.row_fwd_mode)
+
+        self.chk_dedup = CheckBox("Duplicate packet filter (dedup)")
         self.chk_dedup.setToolTip(
-            "Filter duplicate sequence numbers at relay. Turn off for reboot experiments where source sequence resets."
+            "Filter duplicate sequence numbers arriving over multiple paths or hops."
         )
         self.chk_dedup.clicked.connect(self._on_form_changed)
         lay.addWidget(self.chk_dedup)
+
+        self.chk_source_rx = CheckBox("Source RX listen window (source_rx)")
+        self.chk_source_rx.setToolTip(
+            "When enabled, source listens for the specified window after each transmission. "
+            "Turn off for pure high-rate bursts (0 ms)."
+        )
+        self.chk_source_rx.clicked.connect(self._on_source_rx_clicked)
+        lay.addWidget(self.chk_source_rx)
+
+        self.spin_rx_window = NoWheelSpinBox()
+        self.spin_rx_window.setRange(0, 10000)
+        self.spin_rx_window.setSingleStep(50)
+        self.spin_rx_window.setSuffix(" ms")
+        self.spin_rx_window.valueChanged.connect(self._on_rx_window_spin_changed)
+        self.row_rx_window = field_row("Source RX window duration", self.spin_rx_window)
+        lay.addWidget(self.row_rx_window)
+
+        self.sink_banner = QLabel(
+            "Gateway mode: Sink operates in continuous 100% duty cycle reception (1.0s slices with zero idle gap) and delivers packets addressed to its device ID."
+        )
+        self.sink_banner.setObjectName("Faint")
+        self.sink_banner.setWordWrap(True)
+        self.sink_banner.setStyleSheet("padding: 4px 0;")
+        lay.addWidget(self.sink_banner)
 
         note = QLabel(
             "Values are written with <code>exp role</code> / <code>exp sett</code> and then "
@@ -371,7 +411,31 @@ class NodeInspector(QFrame):
         lay.setContentsMargins(0, 8, 0, 0)
         lay.setSpacing(12)
 
-        lay.addWidget(SectionLabel("Boot behaviour"))
+        lay.addWidget(SectionLabel("Hardware protection & boot"))
+
+        # Hardware Endurance Warning Alert Box
+        alert_box = QFrame()
+        alert_box.setObjectName("AlertWarning")
+        p = theme.palette()
+        alert_box.setStyleSheet(
+            f"background:{p.surface_alt}; border:1px solid {p.warning}; border-radius:6px; padding:10px;"
+        )
+        alert_lay = QVBoxLayout(alert_box)
+        alert_lay.setContentsMargins(8, 8, 8, 8)
+        alert_lay.setSpacing(4)
+        warn_title = QLabel("⚠️ Hardware Endurance Warning")
+        warn_title.setStyleSheet(f"color:{p.warning}; font-weight:600; font-size:12px;")
+        alert_lay.addWidget(warn_title)
+        warn_desc = QLabel(
+            "Writing to NVS flash physically wears the microcontroller's NOR flash sectors (~10k erase cycles). "
+            "Only save to flash when strictly necessary to persist profiles across power cuts. "
+            "For routine testing, keep settings in RAM via Apply."
+        )
+        warn_desc.setObjectName("Faint")
+        warn_desc.setWordWrap(True)
+        alert_lay.addWidget(warn_desc)
+        lay.addWidget(alert_box)
+
         self.grid_flash = KeyValueGrid()
         self.grid_flash.add("persist", "Saved profile in flash")
         self.grid_flash.add("autostart", "Autostart after reset")
@@ -542,6 +606,9 @@ class NodeInspector(QFrame):
             "text" if loss is None else ("success" if loss < 5 else "warning"),
         )
         self.grid_counters.set("drops", f"{node.fwd_dup} / {node.fwd_ttl} / {node.fwd_qfull}")
+        self.grid_counters.set(
+            "q_peak", "—" if node.q_peak is None else f"{node.q_peak} / 32"
+        )
         self.spark.set_values(list(node.rssi_history))
 
         if node.neighbors:
@@ -624,6 +691,69 @@ class NodeInspector(QFrame):
         self.btn_revert.setEnabled(dirty)
         for widget in list(self.spins.values()) + [self.cmb_role, self.chk_dedup]:
             widget.setEnabled(ready)
+
+        role = self.cmb_role.currentText()
+        is_source = (role == "source")
+        is_relay = (role == "relay")
+        is_sink = (role == "sink")
+
+        # Keep all 8 fields visible so the 2-column grid never collapses or shifts:
+        if "dest" in self.row_widgets:
+            for w in self.row_widgets.values():
+                w.setVisible(True)
+
+            self.spins["dest"].setEnabled(ready and is_source)
+            self.spins["interval"].setEnabled(ready and is_source)
+            self.spins["count"].setEnabled(ready and is_source)
+            self.spins["max_hops"].setEnabled(ready and (is_source or is_relay))
+            self.spins["size"].setEnabled(ready and (is_source or is_relay))
+            self.spins["power"].setEnabled(ready)
+            self.spins["mcs"].setEnabled(ready)
+            self.spins["hello"].setEnabled(ready)
+
+            # Informative tooltips on fields disabled for specific roles
+            if not is_source:
+                for k in ("dest", "interval", "count"):
+                    self.spins[k].setToolTip("Only applicable for traffic generator (source role).")
+            else:
+                self.spins["dest"].setToolTip("Target device ID.")
+                self.spins["interval"].setToolTip("Milliseconds between packet transmissions.")
+                self.spins["count"].setToolTip("Number of packets to send (0 = forever).")
+
+            if is_sink:
+                self.spins["max_hops"].setToolTip("Not applicable for sink (gateway).")
+                self.spins["size"].setToolTip("Not applicable for sink (gateway).")
+            else:
+                self.spins["max_hops"].setToolTip("Maximum hops before packet TTL drop.")
+                self.spins["size"].setToolTip("Payload size in bytes (18..250).")
+
+        self.chk_source_rx.setVisible(is_source)
+        self.row_rx_window.setVisible(is_source)
+        self.row_fwd_mode.setVisible(is_relay)
+        self.chk_dedup.setVisible(is_relay or is_sink)
+        self.sink_banner.setVisible(is_sink)
+
+        self.chk_source_rx.setEnabled(ready and is_source)
+        self.spin_rx_window.setEnabled(ready and is_source and self.chk_source_rx.isChecked())
+        self.cmb_fwd_mode.setEnabled(ready and is_relay)
+        self.chk_dedup.setEnabled(ready and (is_relay or is_sink))
+        if not is_relay:
+            self.cmb_fwd_mode.setToolTip("Only applicable for relay nodes (cut_through vs batch).")
+        else:
+            self.cmb_fwd_mode.setToolTip("cut_through (<2 ms immediate) vs batch (periodic 2000 ms).")
+        if not is_source:
+            if not self.chk_source_rx.isChecked():
+                self.chk_source_rx.blockSignals(True)
+                self.chk_source_rx.setChecked(True)
+                self.chk_source_rx.blockSignals(False)
+            self.chk_source_rx.setToolTip(
+                "Frozen ON for relay and sink (relays and sinks must always listen for network traffic)."
+            )
+        else:
+            self.chk_source_rx.setToolTip(
+                "When enabled, source listens for the specified window after each transmission. "
+                "Turn off to allow high-rate stress bursts (sub-second intervals)."
+            )
         self.chk_autostart.setEnabled(ready)
         self.btn_save.setEnabled(ready)
         pending = self._pending_autostart.get(node.port)
@@ -668,14 +798,96 @@ class NodeInspector(QFrame):
         self.chk_dedup.blockSignals(True)
         self.chk_dedup.setChecked(dedup_val)
         self.chk_dedup.blockSignals(False)
+
+        fwd_mode_val = node.fwd_mode or "cut_through"
+        self.cmb_fwd_mode.blockSignals(True)
+        self.cmb_fwd_mode.setCurrentText(fwd_mode_val)
+        self.cmb_fwd_mode.blockSignals(False)
+
+        if node.role == "source":
+            source_rx_val = True if node.source_rx is None else bool(node.source_rx)
+            rx_win_val = 2000 if node.rx_window_ms is None else int(node.rx_window_ms)
+            if not source_rx_val:
+                rx_win_val = 0
+        else:
+            source_rx_val = True
+            rx_win_val = 2000
+        self._source_rx_user_val = source_rx_val
+        self.chk_source_rx.blockSignals(True)
+        self.chk_source_rx.setChecked(source_rx_val)
+        self.chk_source_rx.blockSignals(False)
+        self.spin_rx_window.blockSignals(True)
+        self.spin_rx_window.setValue(rx_win_val)
+        self.spin_rx_window.blockSignals(False)
         self._baseline = self._collect()
         self._loading = False
         self.dirty_label.setText("Form matches the board.")
+
+    def _on_source_rx_clicked(self, checked: bool) -> None:
+        if self.cmb_role.currentText() == "source":
+            self._source_rx_user_val = checked
+            if not checked:
+                self.spin_rx_window.blockSignals(True)
+                self.spin_rx_window.setValue(0)
+                self.spin_rx_window.blockSignals(False)
+            else:
+                if self.spin_rx_window.value() == 0:
+                    self.spin_rx_window.blockSignals(True)
+                    self.spin_rx_window.setValue(2000)
+                    self.spin_rx_window.blockSignals(False)
+        self._on_form_changed()
+
+    def _on_rx_window_spin_changed(self, val: int) -> None:
+        if self.cmb_role.currentText() == "source":
+            on = val > 0
+            self._source_rx_user_val = on
+            self.chk_source_rx.blockSignals(True)
+            self.chk_source_rx.setChecked(on)
+            self.chk_source_rx.blockSignals(False)
+        self._on_form_changed()
+
+    def _on_role_changed(self, role: str) -> None:
+        self.role_hint.setText(ROLE_HINT.get(role, ""))
+        if not self._loading:
+            if role == "source":
+                # Auto-enable (check) source_rx to True ONLY if the node on the board
+                # was actually another role (relay or sink). If the node on the board
+                # was already source, the user didn't apply a role change, so restore
+                # their source_rx setting (e.g. False) without making the form dirty.
+                if self._baseline and self._baseline.get("role") != "source":
+                    self.chk_source_rx.blockSignals(True)
+                    self.chk_source_rx.setChecked(True)
+                    self.chk_source_rx.blockSignals(False)
+                    self._source_rx_user_val = True
+                    self.spin_rx_window.blockSignals(True)
+                    self.spin_rx_window.setValue(2000)
+                    self.spin_rx_window.blockSignals(False)
+                else:
+                    self.chk_source_rx.blockSignals(True)
+                    self.chk_source_rx.setChecked(self._source_rx_user_val)
+                    self.chk_source_rx.blockSignals(False)
+                    base_win = int(self._baseline.get("rx_window", 2000)) if self._baseline else 2000
+                    win_val = base_win if self._source_rx_user_val else 0
+                    self.spin_rx_window.blockSignals(True)
+                    self.spin_rx_window.setValue(win_val)
+                    self.spin_rx_window.blockSignals(False)
+            else:
+                # Relay and sink must always listen; visually freeze checked
+                self.chk_source_rx.blockSignals(True)
+                self.chk_source_rx.setChecked(True)
+                self.chk_source_rx.blockSignals(False)
+                self.spin_rx_window.blockSignals(True)
+                self.spin_rx_window.setValue(2000)
+                self.spin_rx_window.blockSignals(False)
+        self._on_form_changed()
 
     def _collect(self) -> dict[str, object]:
         data: dict[str, object] = {
             "role": self.cmb_role.currentText(),
             "dedup": self.chk_dedup.isChecked(),
+            "source_rx": self.chk_source_rx.isChecked(),
+            "fwd_mode": self.cmb_fwd_mode.currentText(),
+            "rx_window": int(self.spin_rx_window.value()),
         }
         for key, spin in self.spins.items():
             data[key] = int(spin.value())
@@ -684,7 +896,7 @@ class NodeInspector(QFrame):
     def is_dirty(self) -> bool:
         if not self._baseline:
             return False
-        return self._collect() != self._baseline
+        return bool(self.changed_settings())
 
     def _on_form_changed(self, *_args) -> None:
         if self._loading or self._node is None:
@@ -698,8 +910,10 @@ class NodeInspector(QFrame):
         self._apply_enabled_state(self._node)
 
     def diff_rows(self) -> list[tuple[str, str, str]]:
-        """(parameter, current, new) for everything the operator changed."""
+        """(parameter, current, new) for everything the operator changed on the active role."""
         current = self._collect()
+        role = str(current.get("role", "source"))
+        allowed = ROLE_FIELDS.get(role, set(current.keys()))
         rows: list[tuple[str, str, str]] = []
         labels = {
             "role": "Role",
@@ -711,9 +925,14 @@ class NodeInspector(QFrame):
             "power": "TX power",
             "mcs": "MCS",
             "size": "Payload (B)",
-            "dedup": "Relay dedup",
+            "dedup": "Duplicate filter (dedup)",
+            "source_rx": "Source RX listen window",
+            "rx_window": "Source RX window (ms)",
+            "fwd_mode": "Forwarding mode",
         }
-        for key, label in labels.items():
+        for key in allowed:
+            if key not in labels:
+                continue
             old = self._baseline.get(key)
             new = current.get(key)
             if old != new:
@@ -721,16 +940,20 @@ class NodeInspector(QFrame):
                     if isinstance(val, bool):
                         return "on" if val else "off"
                     return "—" if val is None else str(val)
-                rows.append((label, _fmt(old), _fmt(new)))
+                rows.append((labels[key], _fmt(old), _fmt(new)))
         return rows
 
     def changed_settings(self) -> dict:
-        """Only the fields that differ, so we send the shortest command set."""
+        """Only the fields that differ and are relevant to the active role."""
         current = self._collect()
-        return {k: v for k, v in current.items() if self._baseline.get(k) != v}
+        role = str(current.get("role", "source"))
+        allowed = ROLE_FIELDS.get(role, set(current.keys()))
+        return {k: v for k, v in current.items() if k in allowed and self._baseline.get(k) != v}
 
     def mark_applied(self) -> None:
         self._baseline = self._collect()
+        if self._baseline.get("role") == "source":
+            self._source_rx_user_val = bool(self._baseline.get("source_rx"))
         if self._node is not None:
             self._apply_enabled_state(self._node)
 

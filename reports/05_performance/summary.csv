@@ -1,0 +1,15 @@
+session,burst_id,packets_sent,packets_delivered,pdr_pct,size_bytes,duration_s,cadence_ms,throughput_kbps,packet_rate_pkts,mean_rssi_direct,mean_rssi_relayed
+1-Hop_vs._2-Hop_Latency_Baseline,1,100,100,100.0,32,50.108,506.14,0.51,2.0,-47.1,-67.9
+1-Hop_vs._2-Hop_Latency_Baseline,2,100,100,100.0,32,50.1078,506.14,0.51,2.0,-47.1,-67.9
+Payload_Scaling___Maximum_Throughput,1,100,100,100.0,18,10.5086,106.15,1.37,9.5,-51.6,
+Payload_Scaling___Maximum_Throughput,2,100,100,100.0,64,10.5294,106.36,4.86,9.5,-51.6,
+Payload_Scaling___Maximum_Throughput,3,100,100,100.0,128,10.6323,107.4,9.63,9.4,-51.6,
+Payload_Scaling___Maximum_Throughput,4,100,100,100.0,249,10.7593,108.68,18.51,9.3,-51.6,
+Rate_Stress_Sweep,1,100,99,99.0,64,50.1294,511.52,1.01,2.0,-48.7,
+Rate_Stress_Sweep,2,100,100,100.0,64,20.4305,206.37,2.51,4.9,-48.7,
+Rate_Stress_Sweep,3,100,100,100.0,64,5.5807,56.37,9.17,17.9,-48.7,
+Rate_Stress_Sweep,4,100,100,100.0,64,2.6117,26.38,19.6,38.3,-48.7,
+Rate_Stress_Sweep,5,100,99,99.0,64,1.6212,16.54,31.27,61.1,-48.7,
+Stress_Maximum_Throughput,1,100,100,100.0,249,5.5627,56.19,35.81,18.0,-48.1,
+Stress_Maximum_Throughput,2,100,100,100.0,249,2.5932,26.19,76.82,38.6,-48.1,
+Stress_Maximum_Throughput,3,100,100,100.0,249,1.603,16.19,124.26,62.4,-48.1,
