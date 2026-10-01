@@ -1,0 +1,434 @@
+#
+# Copyright (c) 2026 Conexio Technologies, Inc
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+menu "DECT NR+ store-and-forward"
+
+config CARRIER
+	int "Carrier number"
+	default 0
+	help
+	  Required. Set this in overlay-us.conf or overlay-eu.conf.
+	  Band index 1 is used only for carriers 525..551.
+	  This is build-time because it is a regulatory choice, not a lab knob.
+
+config NETWORK_ID
+	int "DECT network id"
+	range 1 4294967295
+	default 91
+	help
+	  Build-time. Both the PHY header short id and the modem network id
+	  use this value. Do not change it on one board only.
+
+config TX_POWER
+	int "Default TX power index (0..13)"
+	range 0 13
+	default 10
+	help
+	  Starting value for exp sett power. Not dBm. Overlays may override it.
+	  Runtime changes apply to the next transmission.
+
+config MCS
+	int "Default MCS"
+	range 0 7
+	default 0
+	help
+	  Starting value for exp sett mcs. Experiment 05 (performance) measured MCS 0 up to 249 bytes.
+
+config SF_PHY_MTU
+	int "Maximum PHY payload (bytes)"
+	range 32 249
+	default 249
+	help
+	  Total on-air application PDU, header included. 249 is the size that
+	  Experiment 05 put on the air at MCS 0. The 16-byte protocol header is inside
+	  this budget, so the largest application payload is MTU - 16.
+
+config SF_RX_FILTER_ID
+	int "PHY RX filter receiver identity"
+	range 0 65535
+	default 0
+	help
+	  0 accepts every receiver identity (broadcast filter), matching 03_topology.
+
+config SF_HARQ_RX_PROCESSES
+	int "Modem HARQ RX process count"
+	range 1 8
+	default 4
+
+config SF_HARQ_RX_EXPIRY_US
+	int "Modem HARQ RX expiry (microseconds)"
+	default 5000000
+
+config SF_DEVICE_ID_OVERRIDE
+	bool "Override the hardware device id"
+	default n
+
+config SF_DEVICE_ID
+	int "Device id override"
+	depends on SF_DEVICE_ID_OVERRIDE
+	range 1 65534
+	default 1
+	help
+	  Normally the id is the first two bytes from hwinfo, the same value
+	  03_topology prints. Override only for a bench that must use fixed ids.
+
+choice SF_DEFAULT_ROLE
+	prompt "Role after boot (before a saved profile)"
+	default SF_ROLE_SOURCE
+
+config SF_ROLE_SOURCE
+	bool "source"
+
+config SF_ROLE_RELAY
+	bool "relay"
+
+config SF_ROLE_SINK
+	bool "sink"
+
+endchoice
+
+config SF_DEST_ID
+	int "Default destination id"
+	range 0 65535
+	default 0
+	help
+	  0 means unset. A source will not start until exp sett dest or a profile.
+
+config SF_PAYLOAD_LEN
+	int "Default application payload (bytes)"
+	range 1 233
+	default 64
+	help
+	  This is the application payload, not the on-air frame.
+	  The frame is this value plus the 16-byte header.
+	  It must fit CONFIG_SF_SMALL_PAYLOAD, or the large pool when that is enabled.
+
+config SF_INTERVAL_MS
+	int "Default source period (ms)"
+	range 0 600000
+	default 1000
+	help
+	  0 turns the periodic generator off. Use exp alarm, or set a period.
+	  This is different from 03_topology, where 0 still sent as fast as the loop.
+
+config SF_COUNT
+	int "Default packet count (0 = until stop)"
+	range 0 4294967295
+	default 0
+
+config SF_HELLO_MS
+	int "Default HELLO period (ms, 0 = off)"
+	range 0 600000
+	default 2000
+
+config SF_TTL
+	int "Default hop limit"
+	range 1 16
+	default 5
+
+config SF_DIRECT_FALLBACK
+	bool "If no route entry, send straight to the destination id"
+	default y
+	help
+	  Turn off when the source must be forced through exp route.
+	  Runtime: exp sett direct on|off. A saved profile overrides this default.
+
+config SF_ASSUME_UP
+	bool "Treat a new next hop as UP without probing"
+	default n
+	help
+	  Off matches the protocol rule that a link becomes UP only after N probes.
+	  Turn on for a bench that should move data immediately.
+	  Runtime: exp sett assume_up on|off.
+
+config SF_DEDUPE
+	bool "Drop duplicate deliveries"
+	default y
+	help
+	  Off delivers every copy. Leave it on unless you are deliberately
+	  testing the duplicate path. Runtime: exp sett dedup on|off.
+
+config SF_GEN_CLASS_ALARM
+	bool "Periodic generator sends alarm instead of telemetry"
+	default n
+
+choice SF_DEFAULT_POLICY
+	prompt "Telemetry overflow policy"
+	default SF_POLICY_REJECT
+
+config SF_POLICY_REJECT
+	bool "reject (ACK QUEUE_FULL, sender keeps the packet)"
+
+config SF_POLICY_DROP_OLDEST
+	bool "drop oldest telemetry already in this store"
+
+endchoice
+
+config SF_HELLO_TX_ON
+	bool "Send HELLO even from a source"
+	default n
+	help
+	  When off, HELLO follows the role: relay and sink send it, source does not.
+	  Runtime exp sett hello_tx auto|on|off replaces this.
+
+menu "Store capacity"
+
+config SF_SMALL_SLOTS
+	int "Small-pool slots"
+	range 1 512
+	default 320
+	help
+	  Telemetry capacity is (slots - alarm reserved). At 1 packet/s,
+	  320 slots with 32 reserved is about 288 seconds of backlog.
+	  Raise this only after a ram_report. Each slot costs the payload
+	  size plus about 32 bytes of metadata.
+
+config SF_SMALL_PAYLOAD
+	int "Small-pool payload capacity (bytes)"
+	range 1 233
+	default 64
+
+config SF_SMALL_ALARM_SLOTS
+	int "Small slots reserved for alarm"
+	range 0 512
+	default 32
+	help
+	  Telemetry cannot use these. Alarm can use any free slot.
+	  Must be <= CONFIG_SF_SMALL_SLOTS.
+
+config SF_LARGE_SLOTS
+	int "Large-pool slots"
+	range 0 96
+	default 0
+	help
+	  Leave at 0 until a test sends payloads above the small-pool size.
+	  Each slot is CONFIG_SF_LARGE_PAYLOAD bytes plus metadata.
+
+config SF_LARGE_PAYLOAD
+	int "Large-pool payload capacity (bytes)"
+	range 1 233
+	default 233
+
+config SF_LARGE_ALARM_SLOTS
+	int "Large slots reserved for alarm"
+	range 0 96
+	default 0
+
+endmenu
+
+menu "ARQ, listen, and link"
+
+config SF_ACK_TIMEOUT_MS
+	int "ACK wait after TX (ms)"
+	range 1 5000
+	default 200
+	help
+	  Provisional. A relay that is itself waiting for a downstream ACK
+	  can delay the upstream ACK by about this long. Measure RTT on a
+	  clean 1-hop run, then lower it with exp sett ack_timeout.
+	  Do not start from the spec's 40 ms until that capture exists.
+
+config SF_MAX_ATTEMPTS
+	int "Transmissions before the link is declared DOWN"
+	range 1 8
+	default 4
+	help
+	  Counts the first send. 4 means one send plus three retries.
+	  The packet stays in the store.
+
+config SF_BACKOFF_MIN_MS
+	int "Minimum retry backoff (ms)"
+	range 0 1000
+	default 10
+
+config SF_BACKOFF_MAX_MS
+	int "Maximum of the first retry window (ms)"
+	range 0 5000
+	default 20
+
+config SF_BACKOFF_CAP_MS
+	int "Backoff window cap (ms)"
+	range 0 10000
+	default 80
+
+config SF_NACK_HOLDOFF_MS
+	int "Holdoff after QUEUE_FULL or NO_ROUTE (ms)"
+	range 0 60000
+	default 1000
+	help
+	  Doubled when the ACK reports queue_free = 0.
+
+config SF_INTER_TX_LISTEN_MS
+	int "Listen gap after a completed exchange (ms)"
+	range 0 1000
+	default 20
+
+config SF_RX_SLICE_MS
+	int "Idle receive slice (ms)"
+	range 1 500
+	default 15
+	help
+	  An ACK is sent at the end of the slice that received the frame,
+	  so this is the worst-case extra ACK delay while idle.
+	  Stop also waits out the current slice.
+
+config SF_HELLO_DEAD_MS
+	int "DOWN if a neighbour that has HELLO'd goes silent (ms, 0 = off)"
+	range 0 600000
+	default 7000
+	help
+	  Applied only after at least one HELLO from that next hop.
+	  A peer with HELLO disabled does not kill the link.
+
+config SF_T_PROBE_MS
+	int "Probe timer while DOWN (ms)"
+	range 0 60000
+	default 3000
+
+config SF_PROBE_FAST_MS
+	int "Gap between successful probes (ms)"
+	range 1 5000
+	default 200
+
+config SF_N_UP
+	int "Consecutive probe replies required before UP"
+	range 1 8
+	default 3
+
+config SF_HOLDDOWN_MIN_MS
+	int "First hold-down after UP to DOWN (ms)"
+	range 0 60000
+	default 5000
+
+config SF_HOLDDOWN_MAX_MS
+	int "Hold-down cap (ms)"
+	range 0 120000
+	default 60000
+
+config SF_HOLDDOWN_RESET_MS
+	int "Stable UP time that clears the hold-down streak (ms)"
+	range 0 600000
+	default 60000
+
+config SF_TELEMETRY_TTL_MS
+	int "Drop stored telemetry older than this (ms, 0 = never)"
+	range 0 86400000
+	default 600000
+
+config SF_STREAM_IDLE_MS
+	int "Forget a dedup stream after this idle time (ms, 0 = never)"
+	range 0 86400000
+	default 1800000
+
+config SF_ALARM_RATE
+	int "Alarm token rate (per second)"
+	range 0 100
+	default 5
+
+config SF_ALARM_BURST
+	int "Alarm token burst"
+	range 1 100
+	default 10
+
+config SF_ROUTE_MAX
+	int "Route table entries"
+	range 1 8
+	default 4
+
+config SF_LINK_MAX
+	int "Next-hop link entries"
+	range 1 8
+	default 4
+
+config SF_MAX_STREAMS
+	int "Dedup streams"
+	range 1 16
+	default 16
+
+config SF_NEIGH_MAX
+	int "Neighbour table entries"
+	range 1 8
+	default 8
+
+config SF_ACK_QUEUE
+	int "ACKs that can be waiting to transmit"
+	range 1 8
+	default 4
+
+config SF_RX_QUEUE
+	int "Receive messages queued from the modem callback"
+	range 2 16
+	default 8
+
+endmenu
+
+config SF_OP_TIMEOUT_MS
+	int "Give up on a modem TX/RX operation after (ms)"
+	range 100 10000
+	default 2000
+	help
+	  The modem operation is then cancelled and the run stops.
+	  This is a hang guard, not the ACK timer.
+
+config SF_RADIO_STACK
+	int "Radio thread stack (bytes)"
+	default 8192
+	help
+	  The radio thread builds a full frame (up to the PHY MTU) on the
+	  stack while another copy is waiting for the modem. 8192 covers that
+	  plus the log call. Lower it only after a stack report.
+
+config SF_BOOT_LOOP_MAX
+	int "Boots inside the guard window before radio start is delayed"
+	range 1 20
+	default 5
+
+config SF_BOOT_DELAY_CAP_S
+	int "Maximum boot-loop radio delay (seconds)"
+	range 0 60
+	default 60
+
+config SF_BOOT_STABLE_S
+	int "Continuous run that clears the boot-loop counter (seconds)"
+	range 1 3600
+	default 300
+	help
+	  There is no RTC, so "5 minutes of boots" is approximated by
+	  counting boots until the node has been running this long.
+
+config SF_SHELL
+	bool "exp shell"
+	default y
+	select SHELL
+	select SHELL_BACKEND_SERIAL
+
+config SF_WAIT_FOR_START
+	bool "Wait for exp start unless a profile enables autostart"
+	default y
+	depends on SF_SHELL
+
+config SF_PERSIST
+	bool "Save profile and boot epoch in settings/NVS"
+	default y
+	depends on SF_SHELL
+	select SETTINGS
+	select NVS
+	select FLASH
+	select FLASH_MAP
+	help
+	  exp save stores the profile. The boot epoch is a separate key and
+	  is not erased by exp factory. CONFIG_SETTINGS_NVS is a choice
+	  symbol; prj.conf sets it.
+
+endmenu
+
+module = SF
+module-str = store-and-forward
+source "$(ZEPHYR_BASE)/subsys/logging/Kconfig.template.log_config"
+
+menu "Zephyr Kernel"
+source "Kconfig.zephyr"
+endmenu

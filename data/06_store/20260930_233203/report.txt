@@ -1,0 +1,73 @@
+06_store run 20260930_233203
+size=16 interval=1000 count=forever assume_up=off direct=off on source
+healthy=30s  outage=180s then 300s
+source=56992 socket://10.0.0.139:7777  relay=44720 socket://10.0.0.139:7778  sink=14402 COM7
+--- status before start  socket://10.0.0.139:7777 node=56992 ---
+node=56992 role=source running=0 epoch=22549 proto=1
+generated=0 delivered=0 stored=0 drained=0 depth=0 peak=0 in_flight=0
+rx_queue_drop=0 autostart=0 profile=0 carrier=1711
+--- status before start  socket://10.0.0.139:7778 node=44720 ---
+node=44720 role=relay running=0 epoch=22641 proto=1
+generated=0 delivered=0 stored=0 drained=0 depth=0 peak=0 in_flight=0
+rx_queue_drop=0 autostart=0 profile=0 carrier=1711
+--- status before start  COM7 node=14402 ---
+node=14402 role=sink running=0 epoch=22653 proto=1
+generated=0 delivered=0 stored=0 drained=0 depth=0 peak=0 in_flight=0
+rx_queue_drop=0 autostart=0 profile=0 carrier=1711
+healthy n=44 bad=0 queue_full=0 seqs=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43]
+--- status after 30s healthy  socket://10.0.0.139:7777 node=56992 ---
+node=56992 role=source running=1 epoch=22549 proto=1
+generated=45 delivered=0 stored=45 drained=44 depth=1 peak=3 in_flight=1
+rx_queue_drop=0 autostart=0 profile=0 carrier=1711
+--- status after 30s healthy  socket://10.0.0.139:7778 node=44720 ---
+node=44720 role=relay running=1 epoch=22641 proto=1
+generated=0 delivered=0 stored=46 drained=46 depth=0 peak=2 in_flight=0
+rx_queue_drop=0 autostart=0 profile=0 carrier=1711
+--- status after 30s healthy  COM7 node=14402 ---
+node=14402 role=sink running=1 epoch=22653 proto=1
+generated=0 delivered=47 stored=0 drained=0 depth=0 peak=0 in_flight=0
+rx_queue_drop=0 autostart=0 profile=0 carrier=1711
+--- status sink-down 3min  socket://10.0.0.139:7777 node=56992 ---
+node=56992 role=source running=1 epoch=22549 proto=1
+generated=227 delivered=0 stored=227 drained=226 depth=1 peak=3 in_flight=1
+rx_queue_drop=0 autostart=0 profile=0 carrier=1711
+--- status sink-down 3min  socket://10.0.0.139:7778 node=44720 ---
+node=44720 role=relay running=1 epoch=22641 proto=1
+generated=0 delivered=0 stored=228 drained=48 depth=180 peak=180 in_flight=0
+rx_queue_drop=0 autostart=0 profile=0 carrier=1711
+after 3min drained=359 total=407 tail=[401, 402, 403, 404, 405, 406]
+--- status after 3min drain  socket://10.0.0.139:7777 node=56992 ---
+node=56992 role=source running=1 epoch=22549 proto=1
+generated=407 delivered=0 stored=407 drained=407 depth=0 peak=3 in_flight=0
+rx_queue_drop=0 autostart=0 profile=0 carrier=1711
+--- status after 3min drain  socket://10.0.0.139:7778 node=44720 ---
+node=44720 role=relay running=1 epoch=22641 proto=1
+generated=0 delivered=0 stored=409 drained=408 depth=1 peak=200 in_flight=1
+rx_queue_drop=0 autostart=0 profile=0 carrier=1711
+--- status after 3min drain  COM7 node=14402 ---
+node=14402 role=sink running=1 epoch=22653 proto=1
+generated=0 delivered=362 stored=0 drained=0 depth=0 peak=0 in_flight=0
+rx_queue_drop=0 autostart=0 profile=0 carrier=1711
+--- status sink-down 5min  socket://10.0.0.139:7777 node=56992 ---
+node=56992 role=source running=1 epoch=22549 proto=1
+generated=708 delivered=0 stored=708 drained=699 depth=9 peak=9 in_flight=0
+rx_queue_drop=0 autostart=0 profile=0 carrier=1711
+--- status sink-down 5min  socket://10.0.0.139:7778 node=44720 ---
+node=44720 role=relay running=1 epoch=22641 proto=1
+generated=0 delivered=0 stored=699 drained=411 depth=288 peak=288 in_flight=0
+rx_queue_drop=0 autostart=0 profile=0 carrier=1711
+QUEUE_FULL during 5min=10
+after 5min drained=472 total=883 tail=[875, 876, 877, 878, 879, 880, 881, 882]
+--- status after 5min drain  socket://10.0.0.139:7777 node=56992 ---
+node=56992 role=source running=1 epoch=22549 proto=1
+generated=884 delivered=0 stored=884 drained=883 depth=1 peak=32 in_flight=1
+rx_queue_drop=0 autostart=0 profile=0 carrier=1711
+--- status after 5min drain  socket://10.0.0.139:7778 node=44720 ---
+node=44720 role=relay running=1 epoch=22641 proto=1
+generated=0 delivered=0 stored=885 drained=885 depth=0 peak=288 in_flight=0
+rx_queue_drop=0 autostart=0 profile=0 carrier=1711
+--- status after 5min drain  COM7 node=14402 ---
+node=14402 role=sink running=1 epoch=22653 proto=1
+generated=0 delivered=475 stored=0 drained=0 depth=0 peak=0 in_flight=0
+rx_queue_drop=0 autostart=0 profile=0 carrier=1711
+PASS

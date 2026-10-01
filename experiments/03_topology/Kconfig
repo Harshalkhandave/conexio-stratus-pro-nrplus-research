@@ -95,7 +95,7 @@ config TOPO_DEDUP
 
 config TOPO_PACKET_SIZE
 	int "On-air packet size (bytes)"
-	range 18 250
+	range 18 128
 	default 18
 	help
 	   Total PDC payload size. Must be >= sizeof(topo_packet) (18).

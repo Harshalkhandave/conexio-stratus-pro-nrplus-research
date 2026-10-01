@@ -79,9 +79,6 @@ void topo_runtime_restore_defaults(void)
 	rt.packet_size = (uint16_t)CONFIG_TOPO_PACKET_SIZE;
 	rt.dedup = IS_ENABLED(CONFIG_TOPO_DEDUP);
 	rt.source_rx = true;
-	rt.rx_window_ms = 2000;
-	rt.fwd_mode = TOPO_FWD_CUT_THROUGH;
-	rt.fwd_batch_ms = 2000;
 	memset(rt.neigh, 0, sizeof(rt.neigh));
 	reset_stats_locked();
 	k_mutex_unlock(&rt_lock);
@@ -138,34 +135,6 @@ bool topo_role_from_str(const char *s, enum topo_role *out)
 	}
 	if (strcmp(s, "sink") == 0 || strcmp(s, "gateway") == 0) {
 		*out = TOPO_ROLE_SINK_V;
-		return true;
-	}
-	return false;
-}
-
-const char *topo_fwd_mode_str(enum topo_fwd_mode mode)
-{
-	switch (mode) {
-	case TOPO_FWD_CUT_THROUGH:
-		return "cut_through";
-	case TOPO_FWD_BATCH:
-		return "batch";
-	default:
-		return "unknown";
-	}
-}
-
-bool topo_fwd_mode_from_str(const char *s, enum topo_fwd_mode *out)
-{
-	if (!s || !out) {
-		return false;
-	}
-	if (strcmp(s, "cut_through") == 0 || strcmp(s, "immediate") == 0) {
-		*out = TOPO_FWD_CUT_THROUGH;
-		return true;
-	}
-	if (strcmp(s, "batch") == 0) {
-		*out = TOPO_FWD_BATCH;
 		return true;
 	}
 	return false;
@@ -353,9 +322,8 @@ void topo_print_status(void)
 	printk("  carrier=%d net=0x%x\n", CONFIG_CARRIER, CONFIG_NETWORK_ID);
 	printk("  interval_ms=%u hello_ms=%u count=%u (0=forever)\n", snap.tx_interval_ms,
 	       snap.hello_interval_ms, snap.tx_count);
-	printk("  power=%u mcs=%u size=%u dedup=%d source_rx=%d rx_win=%u fwd=%s\n", snap.tx_power, snap.mcs, snap.packet_size,
-	       snap.dedup ? 1 : 0, snap.source_rx ? 1 : 0, snap.rx_window_ms,
-	       topo_fwd_mode_str(snap.fwd_mode));
+	printk("  power=%u mcs=%u size=%u dedup=%d source_rx=%d\n", snap.tx_power, snap.mcs, snap.packet_size,
+	       snap.dedup ? 1 : 0, snap.source_rx ? 1 : 0);
 #if IS_ENABLED(CONFIG_TOPO_PERSIST)
 	printk("  autostart=%d persist=%d\n", topo_autostart_get() ? 1 : 0,
 	       topo_persist_present() ? 1 : 0);

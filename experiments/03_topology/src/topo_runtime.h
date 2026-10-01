@@ -18,14 +18,9 @@ enum topo_role {
 	TOPO_ROLE_SINK_V = 2,
 };
 
-enum topo_fwd_mode {
-	TOPO_FWD_CUT_THROUGH = 0, /* cut-through real-time forwarding (<2 ms) */
-	TOPO_FWD_BATCH = 1,       /* periodic batching forwarding */
-};
-
 #define TOPO_NEIGH_MAX 8
 #define TOPO_SEEN_MAX 16
-#define TOPO_FWD_QUEUE_MAX 32
+#define TOPO_FWD_QUEUE_MAX 8
 
 struct topo_neighbor {
 	uint16_t id;
@@ -55,10 +50,7 @@ struct topo_runtime {
 	uint8_t mcs;
 	uint16_t packet_size;
 	bool dedup; /* relay duplicate detection on/off */
-	bool source_rx; /* backward compat flag: true if rx_window_ms > 0 */
-	uint32_t rx_window_ms; /* source listen duration after TX (ms); 0 = pure TX burst */
-	enum topo_fwd_mode fwd_mode; /* cut_through (immediate) vs batch */
-	uint32_t fwd_batch_ms; /* batch listen duration when fwd_mode == batch */
+	bool source_rx; /* if true, source listens for 2s after TX. default true */
 	uint16_t q_depth_peak; /* peak forwarding queue depth observed during run */
 
 	uint32_t sequence;
@@ -110,9 +102,6 @@ bool topo_should_autostart(void);
 
 const char *topo_role_str(enum topo_role role);
 bool topo_role_from_str(const char *s, enum topo_role *out);
-
-const char *topo_fwd_mode_str(enum topo_fwd_mode mode);
-bool topo_fwd_mode_from_str(const char *s, enum topo_fwd_mode *out);
 
 uint16_t topo_device_id(void);
 void topo_set_device_id(uint16_t id);

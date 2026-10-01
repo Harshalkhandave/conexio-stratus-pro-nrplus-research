@@ -49,8 +49,6 @@ class BoardConfig:
     size: int = 32
     dedup: bool = True
     source_rx: bool = True
-    rx_window_ms: int = 2000
-    fwd_mode: str = "cut_through"
     carrier: int = 1
     net: str = "0x1a2b"
     autostart: bool = False
@@ -129,11 +127,9 @@ class MockBoard:
             "stop": self._cmd_stop,
             "role": self._cmd_role,
             "sett": self._cmd_sett,
-            "set": self._cmd_sett,
             "save": self._cmd_save,
             "load": self._cmd_load,
             "factory": self._cmd_factory,
-            "reset": self._cmd_factory,
             "autostart": self._cmd_autostart,
         }.get(cmd)
         if handler is None:
@@ -154,7 +150,7 @@ class MockBoard:
         )
         self.shell(
             f"  power={c.power} mcs={c.mcs} size={c.size} dedup={1 if c.dedup else 0} "
-            f"source_rx={1 if c.source_rx else 0} rx_win={c.rx_window_ms} fwd={c.fwd_mode}"
+            f"source_rx={1 if c.source_rx else 0}"
         )
         self.shell(
             f"  autostart={1 if c.autostart else 0} persist={1 if self.saved else 0}"
@@ -254,29 +250,7 @@ class MockBoard:
                 self.shell("source_rx must be on|off (or 1|0)")
                 return
             self.cfg.source_rx = val in ("on", "1", "true")
-            if self.cfg.source_rx and self.cfg.rx_window_ms == 0:
-                self.cfg.rx_window_ms = 2000
-            elif not self.cfg.source_rx:
-                self.cfg.rx_window_ms = 0
             self.shell(f"source_rx={1 if self.cfg.source_rx else 0} (RAM — exp save to persist)")
-            return
-        if key in ("rx_window", "rx_win"):
-            try:
-                ms = int(value, 0)
-            except ValueError:
-                self.shell("rx_window must be an integer")
-                return
-            self.cfg.rx_window_ms = ms
-            self.cfg.source_rx = ms > 0
-            self.shell(f"rx_window={ms} ms (source_rx={1 if self.cfg.source_rx else 0}) (RAM — exp save to persist)")
-            return
-        if key in ("fwd_mode", "cut_through"):
-            val = value.lower()
-            if val not in ("cut_through", "batch"):
-                self.shell("fwd_mode must be cut_through|batch")
-                return
-            self.cfg.fwd_mode = val
-            self.shell(f"fwd_mode={self.cfg.fwd_mode} (RAM — exp save to persist)")
             return
         try:
             number = int(value, 0)
@@ -290,7 +264,7 @@ class MockBoard:
             "count": (0, 1000000),
             "power": (0, 13),
             "mcs": (0, 7),
-            "size": (18, 250),
+            "size": (8, 128),
             "max_hops": (1, 16),
         }
         if key not in limits:
@@ -341,8 +315,6 @@ class MockBoard:
         self.cfg.autostart = False
         self.cfg.dedup = True
         self.cfg.source_rx = True
-        self.cfg.rx_window_ms = 2000
-        self.cfg.fwd_mode = "cut_through"
         self.shell("cleared flash profile; RAM restored to Kconfig defaults")
         self.shell(f"role={self.cfg.role} dest={self.cfg.dest_id} autostart=0")
 

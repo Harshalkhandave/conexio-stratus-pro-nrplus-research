@@ -15,7 +15,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Optional
 
-from core.parse_topo import Neighbor, StatusSnapshot, TopoEvent, _i, parse_kv
+from core.parse_topo import Neighbor, StatusSnapshot, TopoEvent
 from core.transport import short_port_label
 
 # Lifetime of live radio values before they are cleared from the UI (ms).
@@ -80,8 +80,6 @@ class NodeState:
     size: Optional[int] = None
     dedup: Optional[bool] = None
     source_rx: Optional[bool] = None
-    rx_window_ms: Optional[int] = None
-    fwd_mode: Optional[str] = None
     carrier: Optional[int] = None
     net: Optional[str] = None
     autostart: Optional[bool] = None
@@ -290,8 +288,6 @@ class SessionModel:
             ("size", snap.size),
             ("dedup", snap.dedup),
             ("source_rx", snap.source_rx),
-            ("rx_window_ms", snap.rx_window_ms),
-            ("fwd_mode", snap.fwd_mode),
             ("carrier", snap.carrier),
             ("net", snap.net),
             ("autostart", snap.autostart),
@@ -403,37 +399,10 @@ class SessionModel:
                     self.first_deliver_host - self.run_started_host
                 ).total_seconds()
 
-        elif ev.kind == "forward_drop":
-            self._bind_id(n, port, ev.node)
-            reason = (ev.msg_type or "").lower()
-            if "ttl" in reason:
-                n.fwd_ttl += 1
-            elif "queue" in reason or "full" in reason:
-                n.fwd_qfull += 1
-            elif "dup" in reason:
-                n.fwd_dup += 1
-
         elif ev.kind in ("summary", "stopped"):
             n.running = False
             if n.conn == ConnState.RUNNING:
                 n.conn = ConnState.CONNECTED
-            if ev.kind == "summary" and ev.raw:
-                kv = parse_kv(ev.raw)
-                if _i(kv, "data_sent") is not None:
-                    n.data_sent = _i(kv, "data_sent") or 0
-                    n.tx_count = n.data_sent
-                if _i(kv, "hello_sent") is not None:
-                    n.hello_sent = _i(kv, "hello_sent") or 0
-                if _i(kv, "fwd_sent") is not None:
-                    n.fwd_count = _i(kv, "fwd_sent") or 0
-                if _i(kv, "rx_ok") is not None:
-                    n.rx_ok = _i(kv, "rx_ok") or 0
-                if _i(kv, "rx_fail") is not None:
-                    n.rx_fail = _i(kv, "rx_fail") or 0
-                if _i(kv, "deliver") is not None:
-                    n.deliver_count = _i(kv, "deliver") or 0
-                if _i(kv, "q_peak") is not None:
-                    n.q_peak = _i(kv, "q_peak") or 0
 
         self._recompute_loss()
 
@@ -474,33 +443,6 @@ class SessionModel:
         n.rssi_history.append(rssi)
 
     # ------------------------------------------------------------ run state
-    def reset_metrics(self) -> None:
-        """Reset live session counters, PDR, and path metrics for a clean experiment run."""
-        for n in self.nodes.values():
-            n.tx_count = 0
-            n.fwd_count = 0
-            n.deliver_count = 0
-            n.rx_ok = 0
-            n.rx_fail = 0
-            n.data_sent = 0
-            n.hello_sent = 0
-            n.fwd_dup = 0
-            n.fwd_ttl = 0
-            n.fwd_qfull = 0
-            n.q_peak = 0
-            n.packet_loss_pct = None
-        for link in self.links.values():
-            link.packets = 0
-        self.anims.clear()
-        self.run_started_host = datetime.now()
-        self.first_deliver_host = None
-        self.establishment_s = None
-        self.seen_direct = False
-        self.seen_via = False
-        self.path_class = "none"
-        self.route_changes = 0
-        self._recompute_loss()
-
     def note_run_started(self) -> None:
         self.run_started_host = datetime.now()
         self.first_deliver_host = None
@@ -616,9 +558,6 @@ class SessionModel:
             ("size", n.size, expected.get("size")),
             ("max_hops", n.max_hops, expected.get("max_hops")),
             ("dedup", n.dedup, expected.get("dedup")),
-            ("fwd_mode", n.fwd_mode, expected.get("fwd_mode")),
-            ("source_rx", n.source_rx, expected.get("source_rx")),
-            ("rx_window", n.rx_window_ms, expected.get("rx_window")),
         )
         for key, actual, want in checks:
             if want is None:

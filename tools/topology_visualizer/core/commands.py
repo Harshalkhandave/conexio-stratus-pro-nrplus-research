@@ -24,7 +24,7 @@ from core.transport import SerialHub
 Matcher = Callable[[Response], Optional[bool]]
 
 DEFAULT_STEP_TIMEOUT = 3.0
-STATUS_TIMEOUT = 6.0
+STATUS_TIMEOUT = 4.0
 INTER_STEP_GAP = 0.06
 
 
@@ -59,10 +59,6 @@ def match_ok(resp: Response) -> Optional[bool]:
     if body.startswith("dedup="):
         return True
     if body.startswith("source_rx="):
-        return True
-    if body.startswith("rx_window="):
-        return True
-    if body.startswith("fwd_mode="):
         return True
     if _is_error_text(body):
         return False
@@ -163,7 +159,7 @@ class CommandEngine(QObject):
         self._workers: dict[str, threading.Thread] = {}
         self._inbox: dict[str, queue.Queue[Response]] = {}
         self._active: dict[str, Optional[Request]] = {}
-        self._lock = threading.RLock()
+        self._lock = threading.Lock()
         router.add_listener(self._on_response)
 
     # ---------------------------------------------------------------- plumbing
@@ -187,20 +183,9 @@ class CommandEngine(QObject):
             return q
 
     def submit(self, req: Request) -> int:
-        with self._lock:
-            # Deduplicate read-only requests (status / neigh) if already active or queued
-            if req.kind in ("status", "neigh"):
-                active = self._active.get(req.port)
-                if active and active.kind == req.kind:
-                    return active.id
-                q = self._queues.get(req.port)
-                if q:
-                    for item in list(q.queue):
-                        if item and item.kind == req.kind:
-                            return item.id
-            req.id = next(self._ids)
-            self._worker_for(req.port).put(req)
-            return req.id
+        req.id = next(self._ids)
+        self._worker_for(req.port).put(req)
+        return req.id
 
     def shutdown(self) -> None:
         for port, q in list(self._queues.items()):
@@ -209,24 +194,22 @@ class CommandEngine(QObject):
         self._queues.clear()
 
     def pending(self, port: str) -> int:
-        with self._lock:
-            q = self._queues.get(port)
-            depth = q.qsize() if q else 0
-            return depth + (1 if self._active.get(port) else 0)
+        q = self._queues.get(port)
+        depth = q.qsize() if q else 0
+        return depth + (1 if self._active.get(port) else 0)
 
     def busy(self, port: str) -> bool:
         return self.pending(port) > 0
 
     def drain(self, port: str) -> None:
         self._drain_inbox(port)
-        with self._lock:
-            q = self._queues.get(port)
-            if q:
-                while not q.empty():
-                    try:
-                        q.get_nowait()
-                    except queue.Empty:
-                        break
+        q = self._queues.get(port)
+        if q:
+            while not q.empty():
+                try:
+                    q.get_nowait()
+                except queue.Empty:
+                    break
 
     def _drain_inbox(self, port: str) -> None:
         box = self._inbox.get(port)
@@ -243,12 +226,10 @@ class CommandEngine(QObject):
             req = q.get()
             if req is None:
                 return
-            with self._lock:
-                self._active[port] = req
+            self._active[port] = req
             self.started.emit(port, req.id, req.label)
             ok, detail = self._execute(req)
-            with self._lock:
-                self._active[port] = None
+            self._active[port] = None
             self.finished.emit(port, req.id, ok, detail)
 
     def _execute(self, req: Request) -> tuple[bool, str]:
@@ -271,7 +252,6 @@ class CommandEngine(QObject):
     def _await(self, req: Request, step: Step) -> tuple[bool, str]:
         box = self._inbox[req.port]
         deadline = time.monotonic() + step.timeout
-        poked = False
         while True:
             remaining = deadline - time.monotonic()
             if remaining <= 0:
@@ -279,9 +259,6 @@ class CommandEngine(QObject):
             try:
                 resp = box.get(timeout=min(0.25, remaining))
             except queue.Empty:
-                if not poked and step.text.startswith("exp status") and (step.timeout - remaining) > 0.6:
-                    self.hub.write_line(req.port, "")
-                    poked = True
                 continue
             if resp.body.strip() == step.text.strip():
                 continue  # shell echo of our own command
@@ -358,11 +335,7 @@ class CommandEngine(QObject):
         if "dedup" in settings and settings["dedup"] is not None:
             flag = "on" if settings["dedup"] else "off"
             steps.append(Step(f"exp sett dedup {flag}"))
-        if "fwd_mode" in settings and settings["fwd_mode"] is not None:
-            steps.append(Step(f"exp sett fwd_mode {settings['fwd_mode']}"))
-        if "rx_window" in settings and settings["rx_window"] is not None:
-            steps.append(Step(f"exp sett rx_window {int(settings['rx_window'])}"))
-        elif "source_rx" in settings and settings["source_rx"] is not None:
+        if "source_rx" in settings and settings["source_rx"] is not None:
             flag = "on" if settings["source_rx"] else "off"
             steps.append(Step(f"exp sett source_rx {flag}"))
         if verify:

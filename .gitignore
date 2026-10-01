@@ -44,7 +44,6 @@ desktop.ini
 *~
 *.swp
 *.tmp
-scratch/
 
 # --- Logs & local captures (keep folder via .gitkeep) ---
 data/**/*.csv

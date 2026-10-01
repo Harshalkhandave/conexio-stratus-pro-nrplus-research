@@ -44,7 +44,6 @@ class EventConsole(QFrame):
         super().__init__(parent)
         self.setObjectName("Panel")
         self._lines: deque[tuple[str, str, str, str]] = deque(maxlen=MAX_LINES)
-        self._visible_count: int = 0
         self._filter = "all"
         self._query = ""
         self._paused = False
@@ -169,18 +168,11 @@ class EventConsole(QFrame):
     # ----------------------------------------------------------------- feed
     def append(self, port: str, host_ts: str, body: str, sev: str) -> None:
         entry = (port, host_ts, body, sev)
-        if len(self._lines) == self._lines.maxlen:
-            oldest = self._lines[0]
-            if self._visible(oldest):
-                self._visible_count = max(0, self._visible_count - 1)
         self._lines.append(entry)
-        vis = self._visible(entry)
-        if vis:
-            self._visible_count += 1
-            if not self._paused:
-                self.view.appendHtml(self._html(entry))
-                if self._autoscroll:
-                    self._scroll_to_end()
+        if not self._paused and self._visible(entry):
+            self.view.appendHtml(self._html(entry))
+            if self._autoscroll:
+                self._scroll_to_end()
         self._update_footer()
 
     def note(self, text: str) -> None:
@@ -208,17 +200,16 @@ class EventConsole(QFrame):
 
     def _rerender(self) -> None:
         self.view.clear()
-        visible_entries = [e for e in self._lines if self._visible(e)]
-        self._visible_count = len(visible_entries)
-        if visible_entries:
-            html = [self._html(e) for e in visible_entries]
+        html = [self._html(e) for e in self._lines if self._visible(e)]
+        if html:
             self.view.appendHtml("<br>".join(html))
         if self._autoscroll:
             self._scroll_to_end()
         self._update_footer()
 
     def _update_footer(self) -> None:
-        text = f"{self._visible_count} of {len(self._lines)} lines"
+        shown = sum(1 for e in self._lines if self._visible(e))
+        text = f"{shown} of {len(self._lines)} lines"
         if self._port_filter:
             text += f"  ·  {short_port_label(self._port_filter)} only"
         if self._paused:
@@ -255,7 +246,6 @@ class EventConsole(QFrame):
 
     def clear(self) -> None:
         self._lines.clear()
-        self._visible_count = 0
         self.view.clear()
         self._update_footer()
         self.cleared.emit()
