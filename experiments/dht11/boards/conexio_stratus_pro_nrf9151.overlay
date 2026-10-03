@@ -1,0 +1,8 @@
+/ {
+	dht11: dht11 {
+		compatible = "aosong,dht";
+		status = "okay";
+		/* Configured for Conexio Stratus Pro V1.4 - D2 (P0.02) */
+		dio-gpios = <&gpio0 2 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+	};
+};

@@ -149,16 +149,17 @@ int sf_codec_encode(const struct sf_frame *f, uint8_t *out, size_t cap, uint16_t
 	put_u16(&out[12], f->epoch);
 	out[14] = f->hops;
 	out[15] = f->ttl;
+	put_u16(&out[16], f->payload_len);
 
 	if (f->type == SF_TYPE_DATA && f->payload_len > 0) {
 		memcpy(&out[SF_HDR_LEN], f->payload, f->payload_len);
 	} else if (f->type == SF_TYPE_HELLO) {
-		out[16] = f->role;
-		out[17] = f->free_pct;
+		out[18] = f->role;
+		out[19] = f->free_pct;
 	} else if (f->type == SF_TYPE_ACK) {
-		out[16] = f->status;
-		put_u16(&out[17], f->queue_free);
-		put_u16(&out[19], f->node_epoch);
+		out[18] = f->status;
+		put_u16(&out[19], f->queue_free);
+		put_u16(&out[21], f->node_epoch);
 	}
 	return (int)need;
 }
@@ -206,9 +207,12 @@ int sf_codec_decode(const uint8_t *in, size_t len, uint16_t phy_mtu, struct sf_f
 	f->epoch = get_u16(&in[12]);
 	f->hops = in[14];
 	f->ttl = in[15];
+	f->payload_len = get_u16(&in[16]);
 
 	if (type == SF_TYPE_DATA) {
-		f->payload_len = (uint16_t)(len - SF_HDR_LEN);
+		if (SF_HDR_LEN + f->payload_len > len) {
+			return -SF_CODEC_SHORT;
+		}
 		if (f->payload_len > 0) {
 			memcpy(f->payload, &in[SF_HDR_LEN], f->payload_len);
 		}
@@ -216,12 +220,12 @@ int sf_codec_decode(const uint8_t *in, size_t len, uint16_t phy_mtu, struct sf_f
 			return -SF_CODEC_RANGE;
 		}
 	} else if (type == SF_TYPE_HELLO) {
-		f->role = in[16];
-		f->free_pct = in[17];
+		f->role = in[18];
+		f->free_pct = in[19];
 	} else if (type == SF_TYPE_ACK) {
-		f->status = in[16];
-		f->queue_free = get_u16(&in[17]);
-		f->node_epoch = get_u16(&in[19]);
+		f->status = in[18];
+		f->queue_free = get_u16(&in[19]);
+		f->node_epoch = get_u16(&in[21]);
 	}
 	return SF_CODEC_OK;
 }

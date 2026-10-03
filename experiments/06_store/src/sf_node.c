@@ -13,6 +13,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <zephyr/kernel.h>
+#include <zephyr/drivers/sensor.h>
+
 #ifndef EALREADY
 #define EALREADY 114
 #endif
@@ -325,13 +328,46 @@ static void fill_payload(struct sf_node *n, uint8_t *dst, uint16_t len, uint16_t
 	(void)seq;
 }
 
+static void fill_sensor_payload(struct sf_node *n, uint8_t *dst, uint16_t len, uint16_t seq)
+{
+	const struct device *const dht = DEVICE_DT_GET_ANY(aosong_dht);
+	static struct sensor_value cached_temp = {0};
+	static struct sensor_value cached_humidity = {0};
+	static bool has_cache = false;
+	int rc;
+
+	memset(dst, 0, len);
+	dst[0] = (uint8_t)(seq & 0xffu);
+	if (dht == NULL || !device_is_ready(dht)) {
+		printk("DHT11 sensor not ready or not found!\n");
+		return;
+	}
+
+	rc = sensor_sample_fetch(dht);
+	if (rc == 0) {
+		sensor_channel_get(dht, SENSOR_CHAN_AMBIENT_TEMP, &cached_temp);
+		sensor_channel_get(dht, SENSOR_CHAN_HUMIDITY, &cached_humidity);
+		has_cache = true;
+		
+		printk("Source fetched -> Temp: %d.%06d C, Hum: %d.%06d %%\n",
+		       cached_temp.val1, cached_temp.val2, cached_humidity.val1, cached_humidity.val2);
+	} else {
+		printk("Failed to fetch data from DHT11 rc=%d. Using cache.\n", rc);
+	}
+
+	if (has_cache && len >= 17) {
+		memcpy(&dst[1], &cached_temp, sizeof(cached_temp));
+		memcpy(&dst[9], &cached_humidity, sizeof(cached_humidity));
+	}
+}
+
 static int enqueue_local(struct sf_node *n, int64_t now, uint8_t class_, uint16_t seq)
 {
 	struct sf_slot meta;
 	uint8_t payload[SF_PAYLOAD_MAX];
 	struct sf_dropped dropped;
 	uint16_t next;
-	uint16_t len = n->cfg.payload_len;
+	uint16_t len = n->cfg.sensor_mode ? 17 : n->cfg.payload_len;
 	uint32_t order = 0;
 	int rc;
 
@@ -354,7 +390,11 @@ static int enqueue_local(struct sf_node *n, int64_t now, uint8_t class_, uint16_
 	meta.class_ = class_;
 	meta.len = len;
 	meta.stored_ms = now;
-	fill_payload(n, payload, len, seq);
+	if (n->cfg.sensor_mode) {
+		fill_sensor_payload(n, payload, len, seq);
+	} else {
+		fill_payload(n, payload, len, seq);
+	}
 	if (sf_link_ensure(&n->links, next, now, n->cfg.assume_up != 0) == NULL) {
 		n->ct.rejected_at_source++;
 		return -ENOSPC;
@@ -535,6 +575,15 @@ static void accept_sink(struct sf_node *n, int64_t now, const struct sf_frame *f
 	     "DELIVER: node=%u seq=%u src=%u prev=%u hops=%u rssi=%d.%d class=%s epoch=%u time=%lld time_us=%lld",
 	     n->cfg.node_id, f->seq, f->src, f->prev, f->hops, rssi_i, rssi_f, sf_class_name(f->class_),
 	     f->epoch, (long long)now, (long long)now_us(n));
+
+	if (f->payload_len == 17) {
+		struct sensor_value temp, humidity;
+		memcpy(&temp, &f->payload[1], sizeof(temp));
+		memcpy(&humidity, &f->payload[9], sizeof(humidity));
+		printk("Sink received sensor data from %u -> Temp: %d.%06d C, Hum: %d.%06d %%\n",
+		       f->src, temp.val1, temp.val2, humidity.val1, humidity.val2);
+	}
+
 	(void)queue_ack(n, f, SF_ACK_ACCEPTED);
 }
 
@@ -1326,7 +1375,7 @@ int sf_node_set(struct sf_node *n, const char *key, const char *value, char *err
 		}
 		return 0;
 	}
-	if (strcmp(key, "direct") == 0 || strcmp(key, "assume_up") == 0 || strcmp(key, "dedup") == 0) {
+	if (strcmp(key, "direct") == 0 || strcmp(key, "assume_up") == 0 || strcmp(key, "dedup") == 0 || strcmp(key, "sensor") == 0) {
 		if (parse_onoff(value, &bit) != 0) {
 			return set_err(err, err_len, "value is on|off");
 		}
@@ -1334,8 +1383,10 @@ int sf_node_set(struct sf_node *n, const char *key, const char *value, char *err
 			n->cfg.direct_fallback = bit;
 		} else if (strcmp(key, "assume_up") == 0) {
 			n->cfg.assume_up = bit;
-		} else {
+		} else if (strcmp(key, "dedup") == 0) {
 			n->cfg.dedup_on = bit;
+		} else {
+			n->cfg.sensor_mode = bit;
 		}
 		return 0;
 	}
@@ -1356,13 +1407,17 @@ int sf_node_set(struct sf_node *n, const char *key, const char *value, char *err
 		n->cfg.mcs = (uint8_t)v;
 	} else if (strcmp(key, "size") == 0) {
 		uint16_t max = (uint16_t)(n->cfg.phy_mtu > SF_HDR_LEN ? n->cfg.phy_mtu - SF_HDR_LEN : 0);
-		bool fits = v <= n->store.small.cap ||
-			    (n->store.large.nslots > 0 && v <= n->store.large.cap);
+		if (v < SF_HDR_LEN || v > max + SF_HDR_LEN) {
+			return set_err(err, err_len, "size must be >= 18 and <= PHY MTU");
+		}
+		uint16_t payload_len = (uint16_t)(v - SF_HDR_LEN);
+		bool fits = payload_len <= n->store.small.cap ||
+			    (n->store.large.nslots > 0 && payload_len <= n->store.large.cap);
 
-		if (v == 0 || v > max || !fits) {
+		if (!fits) {
 			return set_err(err, err_len, "size does not fit the configured pools or PHY MTU");
 		}
-		n->cfg.payload_len = (uint16_t)v;
+		n->cfg.payload_len = payload_len;
 	} else if (strcmp(key, "ttl") == 0 && v >= 1u && v <= 16u) {
 		n->cfg.ttl = (uint8_t)v;
 	} else if (strcmp(key, "ack_timeout") == 0 && v >= 1u) {
@@ -1436,7 +1491,8 @@ void sf_node_dump_cfg(const struct sf_node *n, sf_print_fn fn, void *ctx)
 	say(fn, ctx, "count=%u", c->count);
 	say(fn, ctx, "power=%u", c->tx_power);
 	say(fn, ctx, "mcs=%u", c->mcs);
-	say(fn, ctx, "size=%u", c->payload_len);
+	say(fn, ctx, "sensor=%s", c->sensor_mode ? "on" : "off");
+	say(fn, ctx, "size=%u", c->payload_len + SF_HDR_LEN);
 	say(fn, ctx, "ttl=%u", c->ttl);
 	say(fn, ctx, "policy=%s", c->policy == SF_POLICY_DROP_OLDEST ? "drop_oldest" : "reject");
 	say(fn, ctx, "assume_up=%s", c->assume_up ? "on" : "off");

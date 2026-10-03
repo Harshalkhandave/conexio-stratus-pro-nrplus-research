@@ -31,9 +31,9 @@
 #define SF_PAYLOAD_MAX 249
 #endif
 
-#define SF_HDR_LEN       16
-#define SF_HELLO_LEN     18
-#define SF_ACK_LEN       21
+#define SF_HDR_LEN       18
+#define SF_HELLO_LEN     20
+#define SF_ACK_LEN       23
 #define SF_PROTO_VERSION 1
 
 enum sf_type {
@@ -126,6 +126,7 @@ struct sf_cfg {
 	uint32_t alarm_rate; /* tokens per second; 0 disables exp alarm */
 	uint8_t alarm_burst;
 	uint16_t phy_mtu;
+	uint8_t sensor_mode;
 };
 
 struct sf_route {
